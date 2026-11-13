@@ -1,0 +1,21 @@
+Experimento de Tolerancia a Fallos - MongoDB Replica Set
+
+1. Creación de la red interna:
+docker network create mongo-cluster
+
+2. Levantamiento de los 3 nodos:
+docker run -d --net mongo-cluster --name mongo1 -p 27017:27017 mongo:latest mongod --replSet rs0
+docker run -d --net mongo-cluster --name mongo2 -p 27018:27017 mongo:latest mongod --replSet rs0
+docker run -d --net mongo-cluster --name mongo3 -p 27019:27017 mongo:latest mongod --replSet rs0
+
+3. Inicialización del clúster distribuido:
+docker exec -it mongo1 mongosh --eval "rs.initiate({_id: 'rs0', members: [{_id: 0, host: 'mongo1:27017'}, {_id: 1, host: 'mongo2:27017'}, {_id: 2, host: 'mongo3:27017'}]})"
+
+4. Verificación de roles iniciales (Búsqueda de PRIMARY y SECONDARY):
+docker exec -it mongo1 mongosh --eval "rs.status()"
+
+5. Simulación de caída del nodo primario (Fallo):
+docker stop mongo1
+
+6. Verificación de Tolerancia a Fallos y nueva elección de líder:
+docker exec -it mongo2 mongosh --eval "rs.status()"
