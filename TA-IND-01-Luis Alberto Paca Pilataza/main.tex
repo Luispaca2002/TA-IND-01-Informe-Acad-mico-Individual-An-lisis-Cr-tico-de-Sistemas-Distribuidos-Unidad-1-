@@ -1,28 +1,47 @@
-% ==============================================================================
-% TA-IND-01: Informe Académico Individual - Análisis Crítico de Sistemas Distribuidos
-% Unidad 1
-% ==============================================================================
-\documentclass[11pt,a4paper]{article}
-
+\documentclass[12pt,a4paper]{article}
 \usepackage[utf8]{inputenc}
-\usepackage[spanish,es-tabla]{babel}
+\usepackage[spanish]{babel}
 \usepackage{graphicx}
-\usepackage{cite}
-\usepackage{hyperref}
 \usepackage{geometry}
-\geometry{top=2.5cm, bottom=2.5cm, left=2.5cm, right=2.5cm}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage[backend=biber,style=ieee]{biblatex}
 
-\title{\textbf{Informe Académico Individual: Análisis Crítico de Sistemas Distribuidos}}
-\author{Estudiante}
-\date{\today}
+\geometry{top=2.5cm, bottom=2.5cm, left=2.5cm, right=2.5cm}
+\addbibresource{referencias.bib}
 
 \begin{document}
 
-\maketitle
+% 1. Carátula
+\begin{titlepage}
+    \centering
+    \vspace*{2cm}
+    \Large \textbf{Universidad Técnica Estatal de Quevedo}\\
+    \vspace{0.5cm}
+    \large Facultad de Ciencias de la Ingeniería\\
+    \large Carrera de Ingeniería de Software\\
+    \vspace{2cm}
+    \textbf{Asignatura:} Sistemas Distribuidos\\
+    \textbf{Actividad:} TA-IND-01 — Informe Académico Individual\\
+    \vspace{2cm}
+    \textbf{Estudiante:} Luis Alberto Paca Pilataza\\
+    \textbf{Curso/Paralelo:} 6 A\\
+    \textbf{Fecha:} 13 de noviembre de 2026\\
+    \vspace{2cm}
+    \textbf{Repositorio GitHub:}\\
+    \url{https://github.com/Luispaca2002/TA-IND-01-Informe-Acad-mico-Individual-An-lisis-Cr-tico-de-Sistemas-Distribuidos-Unidad-1-}
+    \vfill
+\end{titlepage}
 
-% Aquí irá todo el código de tu informe.
+% 2. Resumen
+\begin{abstract}
+Este documento presenta un análisis crítico de la arquitectura distribuida de MongoDB, enfocado específicamente en su implementación de Replica Sets para garantizar alta disponibilidad y tolerancia a fallos. Se examina el sistema a través de los conceptos teóricos fundamentales, incluyendo las transparencias de distribución, el modelo de comunicación, y los compromisos arquitectónicos establecidos por los teoremas CAP y PACELC. A diferencia de un análisis puramente documental, este informe se sustenta en la ejecución de un entorno local distribuido mediante contenedores Docker, donde se provocó deliberadamente la caída del nodo primario para observar, medir y documentar el proceso algorítmico de elección de líder y recuperación del clúster. Las conclusiones obtenidas confirman que MongoDB prioriza la consistencia frente a las particiones de red (CP), sacrificando disponibilidad temporal durante los tiempos de elección, lo cual define su idoneidad para entornos donde la integridad transaccional supera la necesidad de latencia absoluta.
+\end{abstract}
 
-\bibliographystyle{IEEEtran}
-\bibliography{referencias}
+% 3. Introducción
+\section{Introducción}
+En el panorama actual de la gestión de datos a gran escala, las bases de datos relacionales monolíticas presentan cuellos de botella severos al intentar escalar horizontalmente. MongoDB se diseñó para mitigar este problema mediante un modelo orientado a documentos (NoSQL), permitiendo distribuir masivamente la información en múltiples servidores sin imponer esquemas rígidos en disco. 
+
+Se seleccionó este sistema de bases de datos para el presente informe técnico debido a que su mecanismo interno de \textit{Replica Set} ofrece una de las implementaciones más transparentes y comprobables empíricamente para el estudio práctico de la tolerancia a fallos, el particionamiento y los dilemas de consistencia en arquitecturas distribuidas modernas.
 
 \end{document}
