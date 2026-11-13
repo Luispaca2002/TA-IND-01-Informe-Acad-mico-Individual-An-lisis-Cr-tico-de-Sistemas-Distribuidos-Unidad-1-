@@ -8,6 +8,6 @@
 - **Resultado:** Repositorio creado en GitHub y estructura inicial de archivos LaTeX configurada.
 - ## 12 de noviembre de 2026
 - **Actividad:** Elaboración del bosquejo a mano de la arquitectura Replica Set de MongoDB (Anexo A). Búsqueda, lectura y captura de 3 artículos indexados con DOI para fundamentación teórica (Anexo B). Preparación del entorno Docker para pruebas de tolerancia a fallos.
-- **Problema encontrado:** Identificar exactamente qué artículos recientes tenían un DOI válido y datos consistentes para evitar penalizaciones en la dimensión D6.
-- **Solución:** Uso estricto de filtros por año y verificación manual de que los enlaces DOI abrieran el documento correcto antes de tomar las capturas de lectura.
+- **Problema encontrado:** Riesgo de penalización en la dimensión D6 por enlaces rotos y configuración correcta de la red interna de Docker (`mongo-cluster`) para que los tres nodos pudieran comunicarse.
+- **Solución:** Verificación manual de que los enlaces DOI abrieran el documento correcto. Uso del comando `docker network create` e inicialización del Replica Set mediante `rs.initiate` con los comandos específicos guardados en el archivo `comandos.txt`.
 - **Tiempo dedicado:** 3 horas.
