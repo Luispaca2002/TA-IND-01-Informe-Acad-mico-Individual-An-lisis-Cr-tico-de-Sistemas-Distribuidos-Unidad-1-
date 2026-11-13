@@ -30,3 +30,23 @@
 
 ### 3. Tiempo Dedicado
 - **Duración:** 3 horas.
+
+---
+
+## Sesión 2: 2026-11-13
+
+### 1. Actividades Realizadas
+- **Diseño Arquitectónico del Clúster KRaft:** Elaboración y exportación del diagrama formal de arquitectura de Apache Kafka en modo KRaft utilizando Draw.io (`figuras/arquitectura_kafka.png` y archivo editable `figuras/arquitectura_kafka.drawio`), detallando los planos de control (controladores Raft, quórum de votantes), plano de datos (brokers, réplicas de partición, ISR) y flujos de listeners internos/externos.
+- **Revisión Sistemática de Literatura Científica:** Análisis en profundidad de 6 artículos científicos indexados con identificador de objeto digital (DOI) verificable, focalizados en consenso distribuido, particionamiento de logs, consistencia y rendimiento comparativo entre sistemas de mensajería (Kafka vs. RabbitMQ).
+- **Extracción de Citas Clave y Evidencias de Lectura:** Selección y catalogación de citas clave para la fundamentación del informe académico, capturando fragmentos subrayados representativos como evidencia de lectura analítica (`evidencias/lectura_1.png` a `evidencias/lectura_4.png`).
+
+### 2. Problemas Encontrados y Soluciones Aplicadas
+1. **Estandarización de Rutas y Nombres de Archivo para LaTeX:**
+   - *Problema:* El uso de caracteres especiales, mayúsculas inconsistentes o espacios en los nombres de figuras genera fallas y advertencias en el motor de compilación `pdflatex` al invocar `\includegraphics`.
+   - *Solución:* Se implementó una convención uniforme en minúsculas y guiones bajos (`snake_case`) limpia de caracteres especiales para todos los recursos visuales y probatorios ubicados en `figuras/` y `evidencias/`.
+2. **Consistencia de Metadatos y Resolución DOI en Formato IEEE (`biblatex`):**
+   - *Problema:* Inconsistencias de formato en los identificadores DOI y campos de actas/revistas al recuperar registros crudos para `biber`.
+   - *Solución:* Se ejecutó una verificación manual directa contra los repositorios DOI oficiales (Crossref / IEEE Xplore) para garantizar una estructura bibliográfica precisa y validada bajo el estándar IEEE.
+
+### 3. Tiempo Dedicado
+- **Duración:** 2.5 horas.
