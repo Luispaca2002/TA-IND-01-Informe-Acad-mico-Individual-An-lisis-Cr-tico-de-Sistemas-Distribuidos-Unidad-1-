@@ -72,3 +72,25 @@
 
 ### 3. Tiempo Dedicado
 - **Duración:** 3 horas.
+
+---
+
+## Sesión 4: 2026-11-13
+
+### 1. Actividades Realizadas
+- **Desarrollo de la Sección 5 (Análisis crítico con los conceptos de la Unidad 1) en `main.tex`:** Evaluación detallada de las siete transparencias de distribución según Van Steen y Tanenbaum (acceso, ubicación, migración, reubicación, replicación, concurrencia y fallos), clasificando cada una como garantizada por Kafka, compartida con el cliente o delegada al operador, y justificando cada clasificación con el diseño del sistema (protocolo binario común, descubrimiento por metadatos, reasignación manual de particiones, reintentos del cliente ante cambio de líder, orden total por partición y reelección automática de líder).
+- **Modelado Matemático y Análisis de Compromisos CAP/PACELC:** Formalización de la condición de disponibilidad de escritura de una partición ($|ISR| \ge m$), con tolerancia de $RF - m = 1$ réplica caída bajo `acks=all` y `min.insync.replicas=2`, y del costo de latencia en operación normal ($T_{\text{acks=all}} \approx T_{\text{red}} + T_{\text{anexo}} + \max_{f \in ISR} T_{\text{réplica},f}$), acotado por la réplica más lenta del ISR. Clasificación resultante del sistema como **PC/EC**, respaldada con la evidencia experimental de Zhou et al. sobre la reducción de rendimiento del productor por replicación y espera de confirmaciones, y con el quórum Raft del plano de control KRaft.
+- **Caracterización de los Modelos de Comunicación:** Descripción del modelo híbrido de Kafka: cliente-servidor entre productores/consumidores y brokers sobre un protocolo binario propio en TCP, consenso entre pares (Raft) en el quórum de controladores KRaft, replicación líder-seguidor entre brokers y consumo asíncrono desacoplado con patrón pull controlado por offsets, incorporando la métrica de retraso del consumidor ($\text{lag} = \text{LEO} - \text{offset}_{\text{confirmado}}$) y las semánticas de entrega según la posición del commit.
+- **Análisis de Mecanismos de Tolerancia a Fallos:** Documentación de la replicación basada en el conjunto ISR dinámico (`replica.lag.time.max.ms`), la detección de fallos por heartbeats y tiempos de sesión (`broker.session.timeout.ms` en el controlador y `session.timeout.ms` en los grupos de consumidores) y la reelección automática de líder sin pérdida de mensajes confirmados con la elección no limpia deshabilitada.
+- **Contrastación Teórica con Evidencia Empírica de Producción:** Análisis del incidente real de PagerDuty (28 de agosto de 2025), en el que la creación de un productor por cada petición a la API agotó la memoria heap de la JVM en los brokers y provocó una falla en cascada, evidenciando que la replicación protege frente a fallos independientes pero no frente a fallos correlacionados que afectan por igual a todas las réplicas.
+
+### 2. Problemas Encontrados y Soluciones Aplicadas
+1. **Clasificación CAP Simplificada de Kafka:**
+   - *Problema:* Kafka suele describirse como un sistema "CP" de forma absoluta, lo que ignora que su comportamiento ante particiones depende de la configuración de cada topic (`min.insync.replicas`, `unclean.leader.election.enable`) y que la durabilidad no proviene de sincronizar cada mensaje en disco (*fsync*), sino de la replicación entre brokers.
+   - *Solución:* Se acotó la clasificación PC/EC a la configuración analizada (`RF=3`, `acks=all`, `min.insync.replicas=2`, elección no limpia deshabilitada) y se documentó explícitamente cómo cambiar esos parámetros desplaza el sistema hacia AP con riesgo de pérdida de datos confirmados.
+2. **Inconsistencia en la Literatura sobre el Modelo de Consumo:**
+   - *Problema:* Uno de los artículos revisados (Raptis y Passarella) afirma que Kafka admite consumo push y pull, lo que contradice el diseño documentado oficialmente.
+   - *Solución:* Se contrastó la afirmación con la documentación oficial de Apache Kafka y se fundamentó en la Sección 5.3 el modelo exclusivamente pull, con sondeo prolongado (*long polling*) para evitar consultas vacías.
+
+### 3. Tiempo Dedicado
+- **Duración:** [COMPLETAR] horas.
