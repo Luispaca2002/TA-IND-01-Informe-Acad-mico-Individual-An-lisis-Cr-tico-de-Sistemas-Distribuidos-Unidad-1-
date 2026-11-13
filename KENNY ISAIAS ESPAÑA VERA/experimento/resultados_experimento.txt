@@ -1,0 +1,122 @@
+================================================================================
+REGISTRO DE EJECUCIÓN Y RESULTADOS EXPERIMENTALES - CLÚSTER APACHE KAFKA (KRaft)
+Actividad: TA-IND-01 - Análisis Crítico de Sistemas Distribuidos
+Estudiante: Kenny Isaías España Vera
+Fecha de prueba: 2026-11-12
+Entorno: Docker Compose v5.1.3 / Linux WSL2 / apache/kafka:latest
+================================================================================
+
+--------------------------------------------------------------------------------
+1. VERIFICACIÓN DE CONTENEDORES ACTIVOS (docker compose ps / docker ps)
+--------------------------------------------------------------------------------
+$ docker compose ps
+
+NAME      IMAGE                 COMMAND                  SERVICE   CREATED          STATUS          PORTS
+kafka-1   apache/kafka:latest   "/etc/kafka/docker/r…"   kafka-1   12 minutes ago   Up 12 minutes   0.0.0.0:9092->9092/tcp
+kafka-2   apache/kafka:latest   "/etc/kafka/docker/r…"   kafka-2   12 minutes ago   Up 12 minutes   0.0.0.0:9093->9093/tcp
+kafka-3   apache/kafka:latest   "/etc/kafka/docker/r…"   kafka-3   12 minutes ago   Up 12 minutes   0.0.0.0:9094->9094/tcp
+
+Estado: Los 3 brokers/controllers se encuentran en ejecución formando quórum KRaft.
+
+--------------------------------------------------------------------------------
+2. VERIFICACIÓN DEL QUÓRUM DE METADATOS KRAFT
+--------------------------------------------------------------------------------
+$ docker exec -it kafka-1 /opt/kafka/bin/kafka-metadata-quorum.sh --bootstrap-server kafka-1:29092 describe --status
+
+ClusterId:              4L622nShTUiBenA3heKdgw
+LeaderId:               1
+LeaderEpoch:            1
+HighWatermark:          142
+MaxFollowerLag:         0
+MaxFollowerLagTimeMs:   45
+CurrentVoters:          [1, 2, 3]
+CurrentObservers:       []
+
+Estado: Quórum activo. Nodo 1 electo como líder de metadatos KRaft, nodos 2 y 3 como votantes sincronizados con lag 0.
+
+--------------------------------------------------------------------------------
+3. CREACIÓN DEL TOPIC DISTRIBUIDO (3 particiones, factor de replicación 3)
+--------------------------------------------------------------------------------
+$ docker exec -it kafka-1 /opt/kafka/bin/kafka-topics.sh \
+    --bootstrap-server kafka-1:29092 \
+    --create \
+    --topic eventos-distribuidos \
+    --partitions 3 \
+    --replication-factor 3
+
+Created topic eventos-distribuidos.
+
+--------------------------------------------------------------------------------
+4. DESCRIPCIÓN INICIAL DEL TOPIC (--describe) - ESTADO NOMINAL
+--------------------------------------------------------------------------------
+$ docker exec -it kafka-1 /opt/kafka/bin/kafka-topics.sh \
+    --bootstrap-server kafka-1:29092 \
+    --describe \
+    --topic eventos-distribuidos
+
+Topic: eventos-distribuidos	TopicId: 9vQxR2sKTE2hUuX7V_4eLg	PartitionCount: 3	ReplicationFactor: 3	Configs: min.insync.replicas=2
+	Topic: eventos-distribuidos	Partition: 0	Leader: 1	Replicas: 1,2,3	Isr: 1,2,3
+	Topic: eventos-distribuidos	Partition: 1	Leader: 2	Replicas: 2,3,1	Isr: 2,3,1
+	Topic: eventos-distribuidos	Partition: 2	Leader: 3	Replicas: 3,1,2	Isr: 3,1,2
+
+Observaciones:
+- Partición 0: Líder = 1, Réplicas = [1, 2, 3], Conjunto ISR = [1, 2, 3] (Totalmente sincronizado)
+- Partición 1: Líder = 2, Réplicas = [2, 3, 1], Conjunto ISR = [2, 3, 1] (Totalmente sincronizado)
+- Partición 2: Líder = 3, Réplicas = [3, 1, 2], Conjunto ISR = [3, 1, 2] (Totalmente sincronizado)
+- Distribución de líderes equitativa entre los 3 brokers.
+
+--------------------------------------------------------------------------------
+5. SIMULACIÓN DE FALLO DE NODO (DETENCIÓN DEL LÍDER kafka-1)
+--------------------------------------------------------------------------------
+$ docker stop kafka-1
+kafka-1
+
+$ docker compose ps
+NAME      IMAGE                 COMMAND                  SERVICE   CREATED          STATUS          PORTS
+kafka-1   apache/kafka:latest   "/etc/kafka/docker/r…"   kafka-1   15 minutes ago   Exited (143)    
+kafka-2   apache/kafka:latest   "/etc/kafka/docker/r…"   kafka-2   15 minutes ago   Up 15 minutes   0.0.0.0:9093->9093/tcp
+kafka-3   apache/kafka:latest   "/etc/kafka/docker/r…"   kafka-3   15 minutes ago   Up 15 minutes   0.0.0.0:9094->9094/tcp
+
+--------------------------------------------------------------------------------
+6. VERIFICACIÓN DE REELECCIÓN DE LÍDER Y REDUCCIÓN DEL ISR (--describe)
+--------------------------------------------------------------------------------
+$ docker exec -it kafka-2 /opt/kafka/bin/kafka-topics.sh \
+    --bootstrap-server kafka-2:29092 \
+    --describe \
+    --topic eventos-distribuidos
+
+Topic: eventos-distribuidos	TopicId: 9vQxR2sKTE2hUuX7V_4eLg	PartitionCount: 3	ReplicationFactor: 3	Configs: min.insync.replicas=2
+	Topic: eventos-distribuidos	Partition: 0	Leader: 2	Replicas: 1,2,3	Isr: 2,3
+	Topic: eventos-distribuidos	Partition: 1	Leader: 2	Replicas: 2,3,1	Isr: 2,3
+	Topic: eventos-distribuidos	Partition: 2	Leader: 3	Replicas: 3,1,2	Isr: 3,2
+
+Evidencia del comportamiento distribuido:
+1) Reelección Automática de Líder:
+   - Para la Partición 0, el líder original (Broker 1) se desconectó. El quórum eligió automáticamente al Broker 2 como nuevo líder.
+2) Reducción del ISR (In-Sync Replicas Shrinking):
+   - El Broker 1 fue removido del conjunto de réplicas sincronizadas en todas las particiones.
+   - El conjunto ISR se redujo a [2, 3], satisfaciendo la condición min.insync.replicas=2 y permitiendo la continuidad operativa sin pérdida de datos.
+
+--------------------------------------------------------------------------------
+7. RECUPERACIÓN DEL NODO Y RESINCRONIZACIÓN (docker start kafka-1)
+--------------------------------------------------------------------------------
+$ docker start kafka-1
+kafka-1
+
+[Espera de sincronización: 8 segundos]
+
+$ docker exec -it kafka-2 /opt/kafka/bin/kafka-topics.sh \
+    --bootstrap-server kafka-2:29092 \
+    --describe \
+    --topic eventos-distribuidos
+
+Topic: eventos-distribuidos	TopicId: 9vQxR2sKTE2hUuX7V_4eLg	PartitionCount: 3	ReplicationFactor: 3	Configs: min.insync.replicas=2
+	Topic: eventos-distribuidos	Partition: 0	Leader: 2	Replicas: 1,2,3	Isr: 2,3,1
+	Topic: eventos-distribuidos	Partition: 1	Leader: 2	Replicas: 2,3,1	Isr: 2,3,1
+	Topic: eventos-distribuidos	Partition: 2	Leader: 3	Replicas: 3,1,2	Isr: 3,2,1
+
+Evidencia de reintegración:
+- El Broker 1 recuperó su estado desde el volumen persistente kafka-1-data, completó el catch-up de logs y fue reincorporado al ISR de las 3 particiones (Isr: 2,3,1 / 3,2,1).
+================================================================================
+FIN DEL REGISTRO EXPERIMENTAL
+================================================================================
