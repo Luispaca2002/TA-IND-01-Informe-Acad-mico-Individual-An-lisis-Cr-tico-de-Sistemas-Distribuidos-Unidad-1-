@@ -15,3 +15,17 @@ Registro cronológico de sesiones de investigación, experimentación local en D
   - Al finalizar la consulta sobre `system.parts` dentro de `clickhouse-client`, el comando `exit;` generó un error de sintaxis SQL impidiendo volver a PowerShell para detener `ch-nodo2`. Asimismo, fue necesario verificar los identificadores DOI exactos de los artículos de 2024 en el gestor bibliográfico antes de enlazarlos en LaTeX.
 - **Solución aplicada:**
   - Se utilizó el comando nativo `quit` (sin punto y coma) para cerrar la sesión del cliente TCP y repetir correctamente la captura de detención del nodo réplica; además, se validaron los metadatos de las 6 referencias en `referencias.bib` dejando lista la estructura documental para incorporar los anexos gráficos en la siguiente sesión.
+
+---
+
+## Sesión 2 — Viernes, 13 de noviembre de 2026
+- **Tiempo dedicado:** 3 horas y 30 minutos (00:15 – 00:45 y 15:00 – 18:00)
+- **Actividades realizadas:**
+  - Elaboración del bosquejo inicial a mano de la arquitectura distribuida de ClickHouse (Cliente SQL, Nodo Coordinador, Shards MergeTree y ClickHouse Keeper con consenso Raft), firmado y fechado para el Anexo A (`img/esquema_mano.jpg`).
+  - Lectura crítica, subrayado y anotación en Mendeley de tres artículos científicos indexados: Han et al. (2024, p. 3745), Blinowski et al. (2022, p. 20357) y Habib et al. (2024, p. 194631), guardando sus evidencias en `img/`.
+  - Documentación textual de las salidas de consola y tiempos de ejecución en `resultados_experimento.txt` para respaldar la reproducibilidad del experimento en Docker.
+  - Diseño y exportación en draw.io del diagrama arquitectónico digital (`arquitectura_clickhouse.png` y respaldo fuente `.drawio`) incorporando puertos internos (`:9000`, `:8123`, `:9009`, `:9181`), compresión LZ4/ZSTD y leyenda de flujos síncronos/asíncronos.
+- **Problemas encontrados:**
+  - En los artículos de doble columna en inglés de IEEE Access y PVLDB fue necesario localizar los fragmentos específicos sobre consenso de bitácoras WAL, comunicación en red y consistencia de datos manteniendo visible el número de página impreso en la captura.
+- **Solución aplicada:**
+  - Se encuadraron las capturas mostrando tanto el texto subrayado y comentado como el pie de página editorial de cada revista, y se verificaron todos los identificadores DOI para enlazarlos en el Anexo B de `main.tex`.
