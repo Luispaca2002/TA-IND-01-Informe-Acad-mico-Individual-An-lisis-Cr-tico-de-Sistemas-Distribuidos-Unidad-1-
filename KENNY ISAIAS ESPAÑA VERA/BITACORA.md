@@ -50,3 +50,24 @@
 
 ### 3. Tiempo Dedicado
 - **Duración:** 2.5 horas.
+
+---
+
+## Sesión 3: 2026-11-13
+
+### 1. Actividades Realizadas
+- **Estructuración y Normalización de Bibliografía Técnica (`referencias.bib`):** Consolidación de 18 fuentes bibliográficas verificadas bajo el estándar IEEE (`biblatex` con motor `biber`), integrando artículos científicos revisados por pares con identificadores DOI activos, documentación oficial de Apache Kafka 4.0 y especificación KIP-500, literatura fundamental de sistemas distribuidos (Maarten van Steen y Andrew Tanenbaum) y el reporte técnico posmórtem de PagerDuty sobre saturación de memoria heap en la JVM.
+- **Redacción de la Estructura Base del Informe en LaTeX (`main.tex`):** Maquetación de la carátula institucional de la Universidad Técnica Estatal de Quevedo (UTEQ), redacción del resumen técnico y palabras clave, formulación de la introducción motivacional y desarrollo exhaustivo de la **Sección 4 (Arquitectura del sistema)**: modelo de productores con particionamiento por clave, topología de brokers y replicación, gestión y retención de segmentos de log en disco, dimensionamiento de grupos de consumidores ($C_{\text{activos}} = \min(C, P)$) y transición del esquema histórico ZooKeeper al quórum de consenso interno KRaft (KIP-500).
+- **Refinamiento Arquitectónico y Diagramación Modular:** Evolución del bosquejo inicial dibujado a mano (`figuras/esquema_mano.jpeg`) hacia el diagrama vectorial formal en Draw.io (`evidencias/arquitectura_kafka.drawio.png`), disociando nítidamente el plano de control (quórum KRaft) del plano de datos (brokers y réplicas) y corrigiendo el flujo de interacción hacia un modelo pull controlado por offsets.
+- **Validación de Compilación en Overleaf:** Comprobación de compilación limpia de la primera etapa del documento en la plataforma Overleaf, verificando el procesamiento de citas bibliográficas y la ausencia de advertencias tipográficas (`acks=all`, `min.insync.replicas=2`) previo al desarrollo de los conceptos de la Unidad 1.
+
+### 2. Problemas Encontrados y Soluciones Aplicadas
+1. **Divergencias en el Modelo de Consumo en el Esquema Inicial:**
+   - *Problema:* El bosquejo inicial sugería que el broker empujaba los mensajes al consumidor (modelo push), lo cual difería del diseño real de Kafka.
+   - *Solución:* Se corrigió la orientación de las interacciones tanto en el diagrama Draw.io como en la discusión de la Sección 4, explicitando el modelo pull donde el consumidor tracciona lotes según su propio ritmo y offset.
+2. **Control Estricto de Parámetros de Durabilidad:**
+   - *Problema:* Necesidad de evitar errores tipográficos sutiles en parámetros clave como `acks=all` (frecuentemente confundido con `a11` o `aII`) y espacios tras los puntos en `min.insync.replicas=2`.
+   - *Solución:* Se auditó y normalizó el código fuente de `main.tex` y las referencias para garantizar precisión terminológica y consistencia técnica total.
+
+### 3. Tiempo Dedicado
+- **Duración:** 3 horas.
