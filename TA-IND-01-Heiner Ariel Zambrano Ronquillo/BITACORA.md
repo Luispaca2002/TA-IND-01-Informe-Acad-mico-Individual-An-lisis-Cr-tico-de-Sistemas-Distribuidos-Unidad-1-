@@ -56,22 +56,48 @@
 
 ## Sesión 2: Viernes, 13 de noviembre de 2026
 
-### 1. Actividades Realizadas
+### 1. Actividades Realizadas y Cronología de la Sesión
 * **00:10 - 00:13 | Versionado de la Infraestructura Distribuida (docker-compose.yml):**
-  * Integración formal y commit en el repositorio del archivo `experimento/docker-compose.yml`.
-  * Definición reproducible de los 4 nodos (`minio1` a `minio4`) en la red bridge `minio-distributed-net`, los mapeos de puertos (9000-9003 y consolas 9010-9013), volúmenes persistentes locales y servicio cliente `mc`.
+  * Integración formal y commit (`57aaed3`) del archivo `experimento/docker-compose.yml`.
+  * Definición reproducible de los 4 nodos (`minio1` a `minio4`) en la red bridge `minio-distributed-net`, puertos (9000-9003 y consolas 9010-9013), volúmenes persistentes locales y servicio cliente `mc`.
 * **00:14 - 00:20 | Estructuración del Andamiaje Académico en LaTeX (informe/main.tex):**
-  * Versionado y commit del documento principal `informe/main.tex` con las 13 secciones obligatorias del informe.
+  * Versionado y commit (`19a3aed`) de la estructura inicial de `informe/main.tex` con las 13 secciones obligatorias del informe.
   * Configuración de la carátula formal, paquetes tipográficos, soporte de idioma español (`babel`), gestión de bibliografía con BibLaTeX (estilo IEEE / Biber) y apéndices.
   * Vinculación en el **Anexo A** de la imagen digitalizada del bosquejo manual (`../figura/bosquejo_inicial_amano.jpeg`).
-  * Verificación sintáctica preliminar de compilación en formato PDF.
-* **00:21 - 00:25 | Consolidación y Sincronización de Evidencias en Git:**
-  * Sincronización de las entradas de `BITACORA.md` con los commits progresivos realizados entre la noche del 12 y la madrugada del 13 de noviembre.
+* **00:21 - 00:25 | Consolidación y Sincronización de Bitácora:**
+  * Registro y commit (`74372a0`) de la actualización de `BITACORA.md` sincronizada con los primeros avances de la madrugada.
+* **00:22:48 - 00:22:52 | Carga de Objeto Distribuido con Erasure Coding (Captura 5):**
+  * A las **00:22:48** se ejecutó el intento inicial de subida:  
+    `docker compose run --rm mc cp comando_prueba.md localminio/datos-distribuidos/`  
+    presentando el error por aislamiento de contenedor: `mc: <ERROR> Unable to prepare URL for copying. Requested path '/comando_prueba.md' not found`.
+  * A las **00:22:52** se corrigió de inmediato montando el directorio actual del host como volumen en `/work`:  
+    `docker compose run --rm -v ${PWD}:/work mc cp /work/comando_prueba.md localminio/datos-distribuidos/`
+  * Subida exitosa de `comando_prueba.md` (5.64 KiB a 33.25 KiB/s), dividiendo y codificando el objeto en fragmentos de datos y paridad Reed-Solomon en el clúster.
+  * Registro de la quinta evidencia en `capturas/05_Subida_objeto_erasure_coding.png` mostrando el progreso al 100% y el prompt con marca temporal exacta (`[Heiner@HP] [2026-11-13 00:22:52] (gh:Heiner-ZZZ)`).
+* **00:38:43 | Registro del Bosquejo de Arquitectura en Git:**
+  * Commit formal (`9ac999a`) integrando `figura/bosquejo_inicial_amano.jpeg` en el repositorio para su compilación en el Anexo A del informe.
+* **00:53:18 | Verificación del Objeto en el Bucket Distribuido (Captura 6):**
+  * A las **00:53:18** se ejecutó la consulta de comprobación en el bucket:  
+    `docker compose run --rm mc ls localminio/datos-distribuidos/`
+  * Salida confirmada del clúster:  
+    `[2026-11-13 05:52:25 UTC] 5.6KiB STANDARD comando_prueba.md`
+  * Verificación de persistencia, metadata y consistencia del objeto distribuido en los nodos de almacenamiento.
+  * Registro de la sexta evidencia en `capturas/06_Verificacion_objeto_en_bucket.png` con prompt exacto (`[Heiner@HP] [2026-11-13 00:53:18] (gh:Heiner-ZZZ)`).
+* **00:54:22 | Versionado de la Guía de Comandos del Experimento:**
+  * Commit formal (`aa5a2a8`) agregando `experimento/comando_prueba.md` con las instrucciones detalladas de inyección de fallos, tolerancia y recuperación.
+* **00:55 - 01:07 | Búsqueda, Verificación Rigurosa y Compilación de Bibliografía IEEE:**
+  * Búsqueda e inspección de artículos científicos recientes (2021–2026) en bases de datos académicas (IEEE Xplore, ACM Digital Library, Elsevier, Scopus, IPSJ y arXiv) para fundamentar el análisis crítico de MinIO vs HDFS y el Anexo B.
+  * Verificación individual de DOIs activos para evitar penalizaciones de la rúbrica.
+    1. *Han et al. (2025)* - IEEE Micro (DOI: 10.1109/MM.2025.3564477).
+  * Inclusión de `\nocite{*}` en `informe/main.tex` y validación de compilación completa en MiKTeX (`pdflatex -> biber -> pdflatex -> pdflatex`). Generación limpia de `informe/main.pdf` con 0 errores y 6 páginas.
 
 ### 2. Problemas Encontrados y Soluciones Aplicadas
-* **Vinculación de rutas relativas de figuras en LaTeX:**
-  * *Problema:* Al organizar el informe dentro del directorio `informe/`, la ruta hacia la imagen del Anexo A debía apuntar al directorio padre `../figura/bosquejo_inicial_amano.jpeg`.
-  * *Solución:* Se corrigió la ruta en `\includegraphics` de `informe/main.tex` y se confirmó que el documento compila incluyendo la imagen sin advertencias de archivo faltante.
+* **Ruta de archivo no encontrada dentro del contenedor de `mc`:**
+  * *Problema:* El cliente `mc` corre dentro de un contenedor Docker aislado. Al ejecutar `docker compose run --rm mc cp comando_prueba.md ...`, el contenedor no puede ver los archivos del sistema de archivos local de Windows, arrojando el error `Unable to prepare URL for copying. Requested path '/comando_prueba.md' not found`.
+  * *Solución:* Se agregó el montaje de volumen en línea `-v ${PWD}:/work`, permitiendo que el contenedor acceda al archivo local mediante la ruta `/work/comando_prueba.md`.
+* **Requisito estricto de fuentes indexadas con DOI verificable:**
+  * *Problema:* La rúbrica penaliza con calificación cero cualquier referencia inexistente o con DOI discordante.
+  * *Solución:* Se verificó cada DOI directamente en sus plataformas editoriales originales (IEEE, ACM, Elsevier, Scopus, IPSJ, arXiv), garantizando concordancia total entre autores, título, volumen, año y enlace persistente.
 
 ### 3. Tiempo Dedicado
-* **Duración:** 45 minutos.
+* **Duración:** 1 hora (00:10 a 01:10).
