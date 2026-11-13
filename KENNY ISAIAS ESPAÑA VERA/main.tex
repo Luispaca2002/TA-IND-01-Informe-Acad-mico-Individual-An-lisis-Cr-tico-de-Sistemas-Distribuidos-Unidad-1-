@@ -233,4 +233,100 @@ PagerDuty publicó el análisis de dos caídas de su clúster Kafka el mismo dí
 
 El incidente expone el límite del modelo de fallos que asume la replicación. El ISR protege frente a fallos independientes de tipo caída (\emph{fail-stop}) de un nodo. Aquí la causa era una carga compartida que afectaba a todos los brokers por igual: replicar no ayuda cuando todas las réplicas reciben el mismo patrón dañino. La recuperación vino de capas externas al broker (reversión del cambio, patrón outbox, más memoria), no del mecanismo de replicación. Para mi propio experimento, con un heap limitado a 384~MB por nodo, el caso muestra que el dimensionamiento de memoria no es un detalle de laboratorio: el estado que el broker mantiene por cliente consume heap y puede derribar el clúster entero.
 
+% =====================================================================
+% 6. EXPERIMENTACION PROPIA
+% =====================================================================
+\section{Experimentación propia}
+\label{sec:experimento}
+
+\subsection{Entorno y configuración}
+
+Desplegué un clúster de tres nodos en modo KRaft con Docker Compose, con contenedores \texttt{kafka-1}, \texttt{kafka-2} y \texttt{kafka-3} basados en la imagen \texttt{apache/kafka:latest} y expuestos en los puertos 9092, 9093 y 9094. Cada nodo se limitó con \texttt{KAFKA\_HEAP\_OPTS="-Xmx384M -Xms256M"}, de modo que el heap máximo total del clúster es $3 \times 384 = 1152$~MB. El límite responde a la memoria disponible en mi equipo y es deliberadamente bajo frente a un despliegue de producción. Sobre el clúster creé el topic \texttt{eventos-distribuidos} con 3 particiones, factor de replicación 3 y \texttt{min.insync.replicas=2}, lo que da $3 \times 3 = 9$ réplicas: cada nodo aloja una copia de cada partición.
+
+Con tres nodos en el quórum, la Ecuación~\eqref{eq:quorum} da $f=1$: el plano de control debe sobrevivir a la caída de un nodo. Con $RF=3$ y $m=2$, la Ecuación~\eqref{eq:isr} indica que las particiones deben seguir aceptando escrituras con un nodo menos. El experimento busca verificar ambas predicciones y observar qué percibe el cliente.
+
+\subsection{Resultados}
+
+La Figura~\ref{fig:nodos} muestra los tres contenedores en ejecución. Es la condición previa del experimento: los tres nodos activos y participando en el clúster.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.9\textwidth]{evidencias/01_nodos_activos.png}
+\caption{Contenedores \texttt{kafka-1}, \texttt{kafka-2} y \texttt{kafka-3} activos en Docker Compose.}
+\label{fig:nodos}
+\end{figure}
+
+La Figura~\ref{fig:topic} registra la creación de \texttt{eventos-distribuidos} con 3 particiones y factor de replicación 3. La operación de crear un topic es una escritura sobre el log de metadatos: el controlador activo la registra y la replica en el quórum antes de que los brokers asignen las réplicas \cite{kip500}. Las advertencias \texttt{Connection to node ... (localhost/127.0.0.1:...) could not be established} que aparecen en la captura no impidieron la creación del topic, pero son un hallazgo en sí mismas: cada broker anuncia a los clientes una dirección \texttt{localhost:<puerto>}, válida desde el host pero no desde dentro de otro contenedor, donde \texttt{localhost} es el propio contenedor. Es la filtración de la transparencia de ubicación descrita en la Sección~\ref{sec:transparencias}: el cliente necesita que la dirección anunciada sea alcanzable desde donde se ejecuta.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.9\textwidth]{evidencias/02_creacion_topic.png}
+\caption{Creación del topic \texttt{eventos-distribuidos} (3 particiones, factor de replicación 3).}
+\label{fig:topic}
+\end{figure}
+
+La Figura~\ref{fig:isr} muestra el estado del topic en condiciones normales. Para cada partición, el campo \texttt{Replicas} lista los tres nodos y el campo \texttt{Isr} reporta \texttt{1,2,3}: las tres réplicas están sincronizadas con el líder. El campo \texttt{Leader} indica qué nodo atiende las lecturas y escrituras de cada partición: la partición 0 quedó liderada por el nodo 1, la 1 por el nodo 2 y la 2 por el nodo 3, y la columna \texttt{Configs} confirma \texttt{min.insync.replicas=2}. La asignación por defecto repartió el liderazgo entre los tres brokers para que ninguno concentre todas las escrituras, que es la base del escalamiento horizontal descrito en la Sección~\ref{sec:arquitectura} \cite{raptis2023survey}. Un ISR completo significa que, en este estado, un dato confirmado con \texttt{acks=all} existe en los tres nodos y sobreviviría a la pérdida de dos de ellos.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.9\textwidth]{evidencias/03_estado_isr_normal.png}
+\caption{Estado del topic en operación normal: \texttt{Isr: 1,2,3} en todas las particiones.}
+\label{fig:isr}
+\end{figure}
+
+A continuación detuve \texttt{kafka-1} con \texttt{docker stop} y consulté el clúster desde \texttt{kafka-2}, todavía indicando \texttt{kafka-1:9092} como servidor de arranque. La Figura~\ref{fig:fallo} muestra el resultado: el cliente emitió la advertencia \texttt{Couldn't resolve server kafka-1:9092 from bootstrap.servers as DNS resolution failed} y terminó con \texttt{KafkaException: Failed to create new KafkaAdminClient}, causada por \texttt{ConfigException: No resolvable bootstrap urls given in bootstrap.servers}.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.9\textwidth]{evidencias/04_fallo_timeout_nodo1.png}
+\caption{Fallo del cliente tras detener \texttt{kafka-1}: el único servidor de arranque indicado no se pudo resolver (\texttt{ConfigException}).}
+\label{fig:fallo}
+\end{figure}
+
+Para separar el fallo del cliente del estado real del clúster, repetí la consulta cinco segundos después de detener \texttt{kafka-1}, esta vez desde \texttt{kafka-3} y usando \texttt{kafka-3:9094} como servidor de arranque. La Figura~\ref{fig:reeleccion} muestra el estado del topic con un nodo caído.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.9\textwidth]{evidencias/05_reeleccion_isr_2_3.png}
+\caption{Estado del topic tras detener \texttt{kafka-1}: la partición 0 pasa a \texttt{Leader: 2} y todas las particiones quedan con dos réplicas sincronizadas (nodos 2 y 3).}
+\label{fig:reeleccion}
+\end{figure}
+
+\subsection{Interpretación técnica}
+
+\paragraph{Lo que hizo el clúster (Figura~\ref{fig:reeleccion}).}
+Antes de la caída, el nodo 1 lideraba la partición 0. Tras detenerlo, el controlador activo dejó de recibir sus latidos, lo aisló y eligió un nuevo líder entre las réplicas del ISR \cite{kafkadocs,kip500}: la partición 0 pasó a \texttt{Leader: 2}, el siguiente nodo de su lista de réplicas asignadas que seguía sincronizado. Las particiones 1 y 2 conservaron a sus líderes (nodos 2 y 3). El ISR de las tres particiones se redujo de tres a dos miembros (\texttt{2,3}, o \texttt{3,2} en la partición 2), mientras que el campo \texttt{Replicas} siguió listando al nodo 1, porque la asignación no cambia: cuando el nodo vuelva y se ponga al día, reingresará al ISR. Todo ocurrió en menos de los cinco segundos de espera del comando, sin intervención manual.
+
+Con $|ISR| = 2$ y \texttt{min.insync.replicas=2}, la Ecuación~\eqref{eq:isr} se cumple en las tres particiones: las escrituras con \texttt{acks=all} siguen siendo aceptadas, así que el topic no perdió disponibilidad de escritura. Tampoco hay pérdida de datos confirmados: un mensaje confirmado con \texttt{acks=all} antes de la caída ya estaba en los nodos 2 y 3, y el nuevo líder de la partición 0 salió precisamente de ese conjunto \cite{zhou2024distributed}. En el plano de control, dos de tres votantes siguen siendo mayoría, de modo que el quórum KRaft siguió operando y pudo registrar los cambios de liderazgo \cite{ongaro2014raft}. Las dos predicciones planteadas al inicio de la sección se cumplieron. El margen, sin embargo, quedó en cero: una segunda caída dejaría el ISR por debajo de $m$ y el topic rechazaría escrituras, que es el comportamiento PC analizado en la Sección~\ref{sec:cap}. Conviene precisar también el alcance de la prueba: la ausencia de pérdida se deduce del estado del ISR y del diseño de la replicación, no de un conteo de mensajes producidos y consumidos antes y después de la caída.
+
+\paragraph{Lo que vio el cliente (Figura~\ref{fig:fallo}).}
+El fallo de la Figura~\ref{fig:fallo} no proviene del clúster. Al detenerse el contenedor \texttt{kafka-1}, el DNS interno de Docker deja de resolver su nombre, y como ese era el único servidor de arranque indicado, el cliente no pudo contactar a ningún broker: falló al validar su configuración, antes de enviar una sola petición. No es un rechazo de escritura, que habría aparecido como \texttt{NotEnoughReplicas} \cite{kafkadocs}, ni un problema de quórum, como demuestra la Figura~\ref{fig:reeleccion}, tomada con el mismo nodo caído. La corrección es de configuración del cliente: indicar los tres brokers en \texttt{--bootstrap-server} para que cualquiera de los sobrevivientes pueda entregarle los metadatos.
+
+Este contraste es la observación más útil del experimento. El servidor cumplió su parte de la transparencia de fallos: reeligió líderes en segundos y conservó el ISR por encima del mínimo. La transparencia se rompió en el borde del cliente, que es justamente lo que la Sección~\ref{sec:transparencias} clasificó como transparencia parcial: el clúster ocultó la caída, pero un cliente atado a un único nodo la expuso por completo.
+
+\subsection{Limitaciones del experimento}
+
+Los tres nodos comparten CPU, memoria, disco y kernel en una sola máquina, así que la independencia de fallos es ficticia: un problema del host derriba a los tres. Detener un contenedor simula una caída limpia (\emph{fail-stop}), no una partición de red; para observar el comportamiento PC descrito en la Sección~\ref{sec:cap} habría que aislar un nodo con \texttt{docker network disconnect} manteniéndolo vivo. Finalmente, el experimento no mide latencias ni rendimiento, por lo que no permite validar el compromiso EL/EC con datos propios; para eso me apoyo en los resultados de Zhou et al. \cite{zhou2024distributed}.
+
+% =====================================================================
+% 7. EJEMPLOS DEL ENTORNO DEL ESTUDIANTE
+% =====================================================================
+\section{Ejemplos del entorno del estudiante}
+
+\subsection{Caso 1: saturación del SGA de la UTEQ en periodos críticos}
+
+Como estudiante he observado que el Sistema de Gestión Académica (SGA) responde con lentitud, muestra errores o cierra la sesión durante los periodos de matriculación y en las horas previas al cierre de entrega de tareas. No tengo acceso a su arquitectura interna, por lo que el análisis es inferencial: los síntomas son compatibles con un sistema de petición y respuesta síncrono en el que todas las solicitudes compiten por los mismos recursos, típicamente un servidor de aplicaciones y una base de datos central.
+
+Desde la Unidad~1, el fenómeno es una pérdida de transparencia de concurrencia: idealmente cada estudiante no debería percibir que miles de compañeros usan el sistema al mismo tiempo \cite{vansteen2023distributed}, pero la latencia y los errores le revelan exactamente eso. El cuello de botella es estructural: si el componente central no escala horizontalmente, la demanda pico se convierte en tiempos de espera y, al agotarse conexiones o memoria, en fallos por sobrecarga.
+
+Kafka ofrecería dos mecanismos útiles, aunque no para todo. Primero, el particionamiento horizontal por clave: si las solicitudes se particionan por identificador de estudiante o de curso, la carga se reparte entre brokers y los eventos de un mismo estudiante conservan su orden \cite{raptis2023survey}. Segundo, la absorción de picos: en lugar de rechazar solicitudes, el sistema las acumula como lag y los consumidores las procesan a su ritmo \cite{calderon2024monitoring}. La propuesta tiene un límite claro. Kafka sirve para desacoplar el trabajo que no necesita respuesta inmediata (notificaciones, cálculo de promedios, verificaciones posteriores a la entrega), pero no elimina la operación síncrona central: el estudiante necesita saber que su tarea quedó registrada. Introducir una cola entre la entrega y su confirmación cambia la experiencia a \enquote{recibido, en proceso}, es decir, introduce consistencia eventual en un punto donde el usuario espera una respuesta definitiva.
+
+\subsection{Caso 2: transferencias interbancarias y mensajería sin cobertura}
+
+He observado que, en la banca móvil, algunas transferencias a otros bancos aparecen como \enquote{en proceso} y el saldo del destinatario se actualiza minutos después. En WhatsApp, cuando pierdo cobertura, el mensaje queda con el ícono de reloj y se envía solo cuando recupero la conexión. Ambos casos son manifestaciones visibles de los compromisos de PACELC \cite{abadi2012consistency}.
+
+WhatsApp, ante la partición de red que supone quedarse sin cobertura, elige disponibilidad local: acepta el mensaje, lo almacena en el dispositivo y lo reenvía después. Es un esquema de almacenamiento y reenvío análogo al búfer del productor Kafka, que retiene registros y reintenta cuando el broker no está disponible \cite{kafkadocs}. La consistencia es eventual: durante la desconexión, emisor y receptor tienen vistas distintas de la conversación, y convergen al restablecerse el enlace.
+
+En la transferencia interbancaria el compromiso es el opuesto en lo que importa. El sistema puede aceptar la orden de inmediato (disponibilidad para registrar la intención), pero no refleja el dinero en la cuenta destino hasta tener la confirmación de la otra institución. Prefiere mostrar \enquote{en proceso} antes que un saldo que luego tendría que revertirse. Es un comportamiento PC/EC similar al de Kafka con \texttt{acks=all}: se paga latencia visible para no exponer un estado que podría no ser definitivo. La diferencia entre ambos casos no es tecnológica sino de costo del error: un mensaje duplicado o tardío es una molestia; un saldo incorrecto es un problema contable.
+
 \end{document}
