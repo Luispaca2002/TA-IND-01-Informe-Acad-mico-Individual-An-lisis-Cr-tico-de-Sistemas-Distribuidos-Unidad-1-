@@ -1,0 +1,257 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net">
+  <diagram name="Página-1" id="cV3ic08mvuqBFPpoR4wL">
+    <mxGraphModel dx="2546" dy="1610" grid="1" gridSize="13" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="0" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="r84S7dkzUprbijCmat9F-1" parent="1" style="swimlane;startSize=36;html=1;whiteSpace=wrap;fillColor=#E9ECEF;fontColor=#1B365D;strokeColor=#1B365D;strokeWidth=2;swimlaneFillColor=#FFFFFF;fontSize=13;fontStyle=1;rounded=1;arcSize=3;collapsible=0;" value="CAPA DE PRODUCTORES" vertex="1">
+          <mxGeometry height="676" width="234" x="-351" y="-28" as="geometry" />
+        </mxCell>
+        <mxCell id="r84S7dkzUprbijCmat9F-2" parent="r84S7dkzUprbijCmat9F-1" style="rounded=1;arcSize=6;whiteSpace=wrap;html=1;fillColor=#F8F9FA;strokeColor=#ADB5BD;dashed=1;align=left;verticalAlign=top;spacingLeft=8;spacingTop=6;fontSize=10;fontColor=#1B365D;" value="&lt;b&gt;Escritura (Produce)&lt;/b&gt;&lt;br&gt;• Topic: eventos-distribuidos&lt;br&gt;• Protocolo: TCP binario (Kafka)&lt;br&gt;• acks=all&lt;br&gt;• min.insync.replicas=2&lt;br&gt;• Cada evento va al líder de su partición (clave → partición)" vertex="1">
+          <mxGeometry height="160" width="190" x="15" y="50" as="geometry" />
+        </mxCell>
+        <mxCell id="r84S7dkzUprbijCmat9F-3" parent="r84S7dkzUprbijCmat9F-1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DCE6F2;strokeColor=#1B365D;strokeWidth=2;fontColor=#1B365D;fontSize=12;arcSize=12;" value="&lt;b&gt;Producer 1&lt;/b&gt;&lt;br&gt;&lt;span style=&#39;font-size:9px&#39;&gt;KafkaProducer · TCP binario&lt;/span&gt;" vertex="1">
+          <mxGeometry height="70" width="139" x="30" y="262" as="geometry" />
+        </mxCell>
+        <mxCell id="r84S7dkzUprbijCmat9F-4" parent="r84S7dkzUprbijCmat9F-1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DCE6F2;strokeColor=#1B365D;strokeWidth=2;fontColor=#1B365D;fontSize=12;arcSize=12;" value="&lt;b&gt;Producer 2&lt;/b&gt;&lt;br&gt;&lt;span style=&#39;font-size:9px&#39;&gt;KafkaProducer · TCP binario&lt;/span&gt;" vertex="1">
+          <mxGeometry height="70" width="160" x="30" y="509" as="geometry" />
+        </mxCell>
+        <mxCell id="r84S7dkzUprbijCmat9F-5" parent="1" style="swimlane;startSize=34;html=1;whiteSpace=wrap;fillColor=#1B365D;fontColor=#FFFFFF;strokeColor=#1B365D;strokeWidth=3;swimlaneFillColor=#F5F8FC;fontSize=14;fontStyle=1;rounded=1;arcSize=2;collapsible=0;" value="CLÚSTER APACHE KAFKA — MODO KRaft (sin ZooKeeper) · Docker Compose" vertex="1">
+          <mxGeometry height="702" width="962" x="-39" y="-26" as="geometry" />
+        </mxCell>
+        <mxCell id="r84S7dkzUprbijCmat9F-6" parent="r84S7dkzUprbijCmat9F-5" style="swimlane;startSize=44;html=1;whiteSpace=wrap;fillColor=#1B365D;fontColor=#FFFFFF;strokeColor=#1B365D;strokeWidth=2;swimlaneFillColor=#FFFFFF;fontSize=12;rounded=1;arcSize=4;collapsible=0;" value="&lt;b&gt;Broker 1&lt;/b&gt;&lt;br&gt;kafka-1 | Puerto 9092" vertex="1">
+          <mxGeometry height="325" width="190" x="53" y="221" as="geometry" />
+        </mxCell>
+        <mxCell id="r84S7dkzUprbijCmat9F-7" parent="r84S7dkzUprbijCmat9F-6" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF7E6;strokeColor=#D97706;fontColor=#B45309;fontSize=9;fontStyle=1;arcSize=30;" value="node.id=1 · broker + controller" vertex="1">
+          <mxGeometry height="18" width="170" x="10" y="52" as="geometry" />
+        </mxCell>
+        <mxCell id="r84S7dkzUprbijCmat9F-8" parent="r84S7dkzUprbijCmat9F-6" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1E7E34;strokeColor=#145A24;strokeWidth=2;fontColor=#FFFFFF;fontSize=11;arcSize=10;shadow=1;" value="&lt;b&gt;Partición 0 [Leader]&lt;/b&gt;&lt;br&gt;&lt;span style=&#39;font-size:9px&#39;&gt;eventos-distribuidos-0&lt;/span&gt;" vertex="1">
+          <mxGeometry height="50" width="160" x="15" y="78" as="geometry" />
+        </mxCell>
+        <mxCell id="r84S7dkzUprbijCmat9F-9" parent="r84S7dkzUprbijCmat9F-6" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E9ECEF;strokeColor=#6C757D;strokeWidth=1;fontColor=#343A40;fontSize=11;arcSize=10;" value="&lt;b&gt;Partición 1 [Follower]&lt;/b&gt;&lt;br&gt;&lt;span style=&#39;font-size:9px&#39;&gt;eventos-distribuidos-1&lt;/span&gt;" vertex="1">
+          <mxGeometry height="50" width="160" x="15" y="143" as="geometry" />
+        </mxCell>
+        <mxCell id="r84S7dkzUprbijCmat9F-10" parent="r84S7dkzUprbijCmat9F-6" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E9ECEF;strokeColor=#6C757D;strokeWidth=1;fontColor=#343A40;fontSize=11;arcSize=10;" value="&lt;b&gt;Partición 2 [Follower]&lt;/b&gt;&lt;br&gt;&lt;span style=&#39;font-size:9px&#39;&gt;eventos-distribuidos-2&lt;/span&gt;" vertex="1">
+          <mxGeometry height="50" width="160" x="15" y="221" as="geometry" />
+        </mxCell>
+        <mxCell id="r84S7dkzUprbijCmat9F-11" parent="r84S7dkzUprbijCmat9F-5" style="swimlane;startSize=44;html=1;whiteSpace=wrap;fillColor=#1B365D;fontColor=#FFFFFF;strokeColor=#1B365D;strokeWidth=2;swimlaneFillColor=#FFFFFF;fontSize=12;rounded=1;arcSize=4;collapsible=0;" value="&lt;b&gt;Broker 2&lt;/b&gt;&lt;br&gt;kafka-2 | Puerto 9093" vertex="1">
+          <mxGeometry height="325" width="220" x="317" y="221" as="geometry" />
+        </mxCell>
+        <mxCell id="r84S7dkzUprbijCmat9F-12" parent="r84S7dkzUprbijCmat9F-11" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF7E6;strokeColor=#D97706;fontColor=#B45309;fontSize=9;fontStyle=1;arcSize=30;" value="node.id=2 · broker + controller" vertex="1">
+          <mxGeometry height="18" width="170" x="20" y="52" as="geometry" />
+        </mxCell>
+        <mxCell id="r84S7dkzUprbijCmat9F-13" parent="r84S7dkzUprbijCmat9F-11" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E9ECEF;strokeColor=#6C757D;strokeWidth=1;fontColor=#343A40;fontSize=11;arcSize=10;" value="&lt;b&gt;Partición 0 [Follower]&lt;/b&gt;&lt;br&gt;&lt;span style=&#39;font-size:9px&#39;&gt;eventos-distribuidos-0&lt;/span&gt;" vertex="1">
+          <mxGeometry height="50" width="160" x="30" y="88" as="geometry" />
+        </mxCell>
+        <mxCell id="r84S7dkzUprbijCmat9F-14" parent="r84S7dkzUprbijCmat9F-11" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1E7E34;strokeColor=#145A24;strokeWidth=2;fontColor=#FFFFFF;fontSize=11;arcSize=10;shadow=1;" value="&lt;b&gt;Partición 1 [Leader]&lt;/b&gt;&lt;br&gt;&lt;span style=&#39;font-size:9px&#39;&gt;eventos-distribuidos-1&lt;/span&gt;" vertex="1">
+          <mxGeometry height="50" width="160" x="30" y="155" as="geometry" />
+        </mxCell>
+        <mxCell id="r84S7dkzUprbijCmat9F-15" parent="r84S7dkzUprbijCmat9F-11" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E9ECEF;strokeColor=#6C757D;strokeWidth=1;fontColor=#343A40;fontSize=11;arcSize=10;" value="&lt;b&gt;Partición 2 [Follower]&lt;/b&gt;&lt;br&gt;&lt;span style=&#39;font-size:9px&#39;&gt;eventos-distribuidos-2&lt;/span&gt;" vertex="1">
+          <mxGeometry height="50" width="160" x="30" y="222" as="geometry" />
+        </mxCell>
+        <mxCell id="r84S7dkzUprbijCmat9F-16" parent="r84S7dkzUprbijCmat9F-5" style="swimlane;startSize=44;html=1;whiteSpace=wrap;fillColor=#1B365D;fontColor=#FFFFFF;strokeColor=#1B365D;strokeWidth=2;swimlaneFillColor=#FFFFFF;fontSize=12;rounded=1;arcSize=4;collapsible=0;" value="&lt;b&gt;Broker 3&lt;/b&gt;&lt;br&gt;kafka-3 | Puerto 9094" vertex="1">
+          <mxGeometry height="325" width="234" x="611" y="221" as="geometry" />
+        </mxCell>
+        <mxCell id="r84S7dkzUprbijCmat9F-17" parent="r84S7dkzUprbijCmat9F-16" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF7E6;strokeColor=#D97706;fontColor=#B45309;fontSize=9;fontStyle=1;arcSize=30;" value="node.id=3 · broker + controller" vertex="1">
+          <mxGeometry height="18" width="170" x="19" y="52" as="geometry" />
+        </mxCell>
+        <mxCell id="r84S7dkzUprbijCmat9F-18" parent="r84S7dkzUprbijCmat9F-16" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E9ECEF;strokeColor=#6C757D;strokeWidth=1;fontColor=#343A40;fontSize=11;arcSize=10;" value="&lt;b&gt;Partición 0 [Follower]&lt;/b&gt;&lt;br&gt;&lt;span style=&#39;font-size:9px&#39;&gt;eventos-distribuidos-0&lt;/span&gt;" vertex="1">
+          <mxGeometry height="50" width="160" x="24" y="91" as="geometry" />
+        </mxCell>
+        <mxCell id="r84S7dkzUprbijCmat9F-19" parent="r84S7dkzUprbijCmat9F-16" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E9ECEF;strokeColor=#6C757D;strokeWidth=1;fontColor=#343A40;fontSize=11;arcSize=10;" value="&lt;b&gt;Partición 1 [Follower]&lt;/b&gt;&lt;br&gt;&lt;span style=&#39;font-size:9px&#39;&gt;eventos-distribuidos-1&lt;/span&gt;" vertex="1">
+          <mxGeometry height="50" width="160" x="24" y="162" as="geometry" />
+        </mxCell>
+        <mxCell id="r84S7dkzUprbijCmat9F-20" parent="r84S7dkzUprbijCmat9F-16" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1E7E34;strokeColor=#145A24;strokeWidth=2;fontColor=#FFFFFF;fontSize=11;arcSize=10;shadow=1;" value="&lt;b&gt;Partición 2 [Leader]&lt;/b&gt;&lt;br&gt;&lt;span style=&#39;font-size:9px&#39;&gt;eventos-distribuidos-2&lt;/span&gt;" vertex="1">
+          <mxGeometry height="50" width="160" x="24" y="233" as="geometry" />
+        </mxCell>
+        <mxCell id="r84S7dkzUprbijCmat9F-21" parent="r84S7dkzUprbijCmat9F-5" style="rounded=1;arcSize=6;whiteSpace=wrap;html=1;fillColor=#FFF7E6;strokeColor=#D97706;strokeWidth=2;verticalAlign=top;align=center;spacingTop=2;fontColor=#92400E;fontSize=12;fontStyle=1;" value="PLANO DE CONTROL — Quórum KRaft · Raft Metadata Log (__cluster_metadata)" vertex="1">
+          <mxGeometry height="115" width="728" x="117" y="66.5" as="geometry" />
+        </mxCell>
+        <mxCell id="r84S7dkzUprbijCmat9F-22" parent="r84S7dkzUprbijCmat9F-5" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#D97706;strokeWidth=2;fontColor=#92400E;fontSize=11;arcSize=14;" value="&lt;b&gt;Controller · kafka-1&lt;/b&gt;&lt;br&gt;&lt;span style=&#39;font-size:9px&#39;&gt;node.id=1 · votante Raft&lt;/span&gt;" vertex="1">
+          <mxGeometry height="40" width="170" x="142" y="104" as="geometry" />
+        </mxCell>
+        <mxCell id="r84S7dkzUprbijCmat9F-23" parent="r84S7dkzUprbijCmat9F-5" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#D97706;strokeWidth=2;fontColor=#92400E;fontSize=11;arcSize=14;" value="&lt;b&gt;Controller · kafka-2&lt;/b&gt;&lt;br&gt;&lt;span style=&#39;font-size:9px&#39;&gt;node.id=2 · votante Raft&lt;/span&gt;" vertex="1">
+          <mxGeometry height="40" width="170" x="396" y="104" as="geometry" />
+        </mxCell>
+        <mxCell id="r84S7dkzUprbijCmat9F-24" parent="r84S7dkzUprbijCmat9F-5" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#D97706;strokeWidth=2;fontColor=#92400E;fontSize=11;arcSize=14;" value="&lt;b&gt;Controller · kafka-3&lt;/b&gt;&lt;br&gt;&lt;span style=&#39;font-size:9px&#39;&gt;node.id=3 · votante Raft&lt;/span&gt;" vertex="1">
+          <mxGeometry height="40" width="170" x="650" y="104" as="geometry" />
+        </mxCell>
+        <mxCell id="r84S7dkzUprbijCmat9F-26" edge="1" parent="r84S7dkzUprbijCmat9F-5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#D97706;strokeWidth=2;dashed=1;dashPattern=3 3;startArrow=oval;startFill=1;endArrow=oval;endFill=1;fontSize=9;fontColor=#92400E;fontStyle=1;labelBackgroundColor=#FFF7E6;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=-0.015;entryY=0.514;entryDx=0;entryDy=0;entryPerimeter=0;" target="r84S7dkzUprbijCmat9F-23" value="Raft">
+          <mxGeometry relative="1" x="-0.0793" as="geometry">
+            <mxPoint x="312" y="123.5" as="sourcePoint" />
+            <mxPoint x="387" y="123.5" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="r84S7dkzUprbijCmat9F-27" edge="1" parent="r84S7dkzUprbijCmat9F-5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#D97706;strokeWidth=2;dashed=1;dashPattern=3 3;startArrow=oval;startFill=1;endArrow=oval;endFill=1;fontSize=9;fontColor=#92400E;fontStyle=1;labelBackgroundColor=#FFF7E6;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="r84S7dkzUprbijCmat9F-24" value="Raft">
+          <mxGeometry relative="1" x="-0.1006" as="geometry">
+            <mxPoint x="566" y="123.5" as="sourcePoint" />
+            <mxPoint x="641" y="123.5" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="r84S7dkzUprbijCmat9F-28" parent="r84S7dkzUprbijCmat9F-5" style="text;html=1;align=center;verticalAlign=middle;fontSize=10;fontColor=#92400E;" value="process.roles=broker,controller · quórum de 3 votantes · 1 controlador activo (líder Raft) · tolera la caída de 1 nodo" vertex="1">
+          <mxGeometry height="22" width="660" x="122" y="149" as="geometry" />
+        </mxCell>
+        <mxCell id="r84S7dkzUprbijCmat9F-36" edge="1" parent="r84S7dkzUprbijCmat9F-5" source="r84S7dkzUprbijCmat9F-6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#1E7E34;strokeWidth=2;dashed=1;dashPattern=8 4;startArrow=block;startFill=1;endArrow=block;endFill=1;startSize=5;endSize=5;fontSize=9;fontColor=#1E7E34;fontStyle=1;labelBackgroundColor=#F5F8FC;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="r84S7dkzUprbijCmat9F-11" value="ISR">
+          <mxGeometry relative="1" x="-0.1385" as="geometry">
+            <mxPoint x="257" y="388.5" as="sourcePoint" />
+            <mxPoint x="312" y="388.5" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="r84S7dkzUprbijCmat9F-39" edge="1" parent="r84S7dkzUprbijCmat9F-5" source="r84S7dkzUprbijCmat9F-11" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#1E7E34;strokeWidth=2;dashed=1;dashPattern=8 4;startArrow=block;startFill=1;endArrow=block;endFill=1;startSize=5;endSize=5;fontSize=9;fontColor=#1E7E34;fontStyle=1;labelBackgroundColor=#F5F8FC;entryX=0;entryY=0.5;entryDx=0;entryDy=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;" target="r84S7dkzUprbijCmat9F-16" value="ISR">
+          <mxGeometry relative="1" x="-0.0356" as="geometry">
+            <mxPoint as="offset" />
+            <mxPoint x="520" y="396.5" as="sourcePoint" />
+            <mxPoint x="624" y="377" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="r84S7dkzUprbijCmat9F-49" parent="r84S7dkzUprbijCmat9F-5" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#1E7E34;dashed=1;fontSize=9;fontColor=#1E7E34;align=center;verticalAlign=middle;spacing=4;" value="&lt;b&gt;Failover automático&lt;/b&gt;&lt;br&gt;Si cae un broker, KRaft promueve un nuevo líder desde el ISR" vertex="1">
+          <mxGeometry height="92" width="108" x="780" y="572" as="geometry" />
+        </mxCell>
+        <mxCell id="r84S7dkzUprbijCmat9F-50" edge="1" parent="r84S7dkzUprbijCmat9F-5" source="r84S7dkzUprbijCmat9F-6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#1E7E34;strokeWidth=2;dashed=1;dashPattern=8 4;startArrow=block;startFill=1;endArrow=block;endFill=1;fontSize=10;fontColor=#1E7E34;fontStyle=1;labelBackgroundColor=#F5F8FC;jumpStyle=arc;jumpSize=10;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" target="r84S7dkzUprbijCmat9F-16" value="Replicación ISR síncrona (Isr: 1,2,3) · P0: kafka-1 → kafka-3 · P2: kafka-3 → kafka-1">
+          <mxGeometry relative="1" x="-0.0319" as="geometry">
+            <mxPoint as="offset" />
+            <Array as="points">
+              <mxPoint x="149.3" y="546" />
+              <mxPoint x="149.3" y="676" />
+              <mxPoint x="728" y="676" />
+            </Array>
+            <mxPoint x="156" y="546" as="sourcePoint" />
+            <mxPoint x="728" y="533" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="r84S7dkzUprbijCmat9F-29" parent="1" style="swimlane;startSize=36;html=1;whiteSpace=wrap;fillColor=#E9ECEF;fontColor=#1B365D;strokeColor=#1B365D;strokeWidth=2;swimlaneFillColor=#FFFFFF;fontSize=13;fontStyle=1;rounded=1;arcSize=3;collapsible=0;" value="CAPA DE CONSUMIDORES" vertex="1">
+          <mxGeometry height="676" width="234" x="1027" y="-26" as="geometry" />
+        </mxCell>
+        <mxCell id="r84S7dkzUprbijCmat9F-30" parent="r84S7dkzUprbijCmat9F-29" style="rounded=1;arcSize=6;whiteSpace=wrap;html=1;fillColor=#F8F9FA;strokeColor=#ADB5BD;dashed=1;align=left;verticalAlign=top;spacingLeft=8;spacingTop=6;fontSize=10;fontColor=#1B365D;" value="&lt;b&gt;Lectura (Fetch)&lt;/b&gt;&lt;br&gt;• Modelo Pull basado en offsets&lt;br&gt;• Cada instancia lee su partición asignada&lt;br&gt;• Offsets confirmados en __consumer_offsets" vertex="1">
+          <mxGeometry height="125" width="210" x="15" y="64" as="geometry" />
+        </mxCell>
+        <mxCell id="r84S7dkzUprbijCmat9F-31" parent="r84S7dkzUprbijCmat9F-29" style="rounded=1;arcSize=4;whiteSpace=wrap;html=1;fillColor=#F5F8FC;strokeColor=#1B365D;strokeWidth=2;dashed=1;dashPattern=6 3;verticalAlign=top;align=center;spacingTop=2;fontColor=#1B365D;fontSize=11;" value="&lt;b&gt;Consumer Group&lt;/b&gt;&lt;br&gt;grupo-analisis" vertex="1">
+          <mxGeometry height="325" width="208" x="15" y="207" as="geometry" />
+        </mxCell>
+        <mxCell id="r84S7dkzUprbijCmat9F-32" parent="r84S7dkzUprbijCmat9F-29" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DCE6F2;strokeColor=#1B365D;strokeWidth=2;fontColor=#1B365D;fontSize=12;arcSize=12;" value="&lt;b&gt;Consumer 1&lt;/b&gt;&lt;br&gt;&lt;span style=&#39;font-size:9px&#39;&gt;Partición 0 · fetch desde offset&lt;/span&gt;" vertex="1">
+          <mxGeometry height="64" width="180" x="30" y="259" as="geometry" />
+        </mxCell>
+        <mxCell id="r84S7dkzUprbijCmat9F-33" parent="r84S7dkzUprbijCmat9F-29" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DCE6F2;strokeColor=#1B365D;strokeWidth=2;fontColor=#1B365D;fontSize=12;arcSize=12;" value="&lt;b&gt;Consumer 2&lt;/b&gt;&lt;br&gt;&lt;span style=&#39;font-size:9px&#39;&gt;Partición 1 · fetch desde offset&lt;/span&gt;" vertex="1">
+          <mxGeometry height="64" width="180" x="30" y="353" as="geometry" />
+        </mxCell>
+        <mxCell id="r84S7dkzUprbijCmat9F-34" parent="r84S7dkzUprbijCmat9F-29" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DCE6F2;strokeColor=#1B365D;strokeWidth=2;fontColor=#1B365D;fontSize=12;arcSize=12;" value="&lt;b&gt;Consumer 3&lt;/b&gt;&lt;br&gt;&lt;span style=&#39;font-size:9px&#39;&gt;Partición 2 · fetch desde offset&lt;/span&gt;" vertex="1">
+          <mxGeometry height="64" width="180" x="30" y="444" as="geometry" />
+        </mxCell>
+        <mxCell id="r84S7dkzUprbijCmat9F-35" parent="r84S7dkzUprbijCmat9F-29" style="text;html=1;whiteSpace=wrap;align=center;verticalAlign=middle;fontSize=9;fontColor=#495057;" value="Paralelismo máximo del grupo = nº de particiones (3). Si un consumidor cae, el coordinador rebalancea su partición." vertex="1">
+          <mxGeometry height="60" width="210" x="12" y="561" as="geometry" />
+        </mxCell>
+        <mxCell id="r84S7dkzUprbijCmat9F-40" edge="1" parent="1" source="r84S7dkzUprbijCmat9F-3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;defaultLabelBackgroundColor=page;labelPadding=0 4;" target="r84S7dkzUprbijCmat9F-8">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="r84S7dkzUprbijCmat9F-41" edge="1" parent="1" source="r84S7dkzUprbijCmat9F-4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;defaultLabelBackgroundColor=page;labelPadding=0 4;exitX=1.014;exitY=0.568;exitDx=0;exitDy=0;exitPerimeter=0;" target="r84S7dkzUprbijCmat9F-14">
+          <mxGeometry relative="1" x="-0.0754" as="geometry">
+            <Array as="points">
+              <mxPoint x="-143" y="520.8" />
+              <mxPoint x="-143" y="572" />
+              <mxPoint x="221" y="572" />
+              <mxPoint x="221" y="375" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="r84S7dkzUprbijCmat9F-42" edge="1" parent="1" source="r84S7dkzUprbijCmat9F-4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;defaultLabelBackgroundColor=page;labelPadding=0 4;" target="r84S7dkzUprbijCmat9F-20">
+          <mxGeometry relative="1" x="0.1234" as="geometry">
+            <Array as="points">
+              <mxPoint x="-241" y="598" />
+              <mxPoint x="533" y="598" />
+              <mxPoint x="533" y="453" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="r84S7dkzUprbijCmat9F-44" edge="1" parent="1" source="r84S7dkzUprbijCmat9F-8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;defaultLabelBackgroundColor=page;labelPadding=0 4;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="r84S7dkzUprbijCmat9F-32">
+          <mxGeometry relative="1" x="-0.0091" as="geometry">
+            <Array as="points">
+              <mxPoint x="221" y="298" />
+              <mxPoint x="221" y="169" />
+              <mxPoint x="988" y="169" />
+              <mxPoint x="988" y="263" />
+            </Array>
+            <mxPoint x="196.5" y="180" as="sourcePoint" />
+            <mxPoint x="1103.5" y="145" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="r84S7dkzUprbijCmat9F-47" edge="1" parent="1" source="r84S7dkzUprbijCmat9F-14" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;defaultLabelBackgroundColor=page;labelPadding=0 4;" target="r84S7dkzUprbijCmat9F-33">
+          <mxGeometry relative="1" x="-0.0542" as="geometry">
+            <Array as="points">
+              <mxPoint x="520" y="375" />
+              <mxPoint x="520" y="182" />
+              <mxPoint x="845" y="182" />
+              <mxPoint x="845" y="357" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="r84S7dkzUprbijCmat9F-48" edge="1" parent="1" source="r84S7dkzUprbijCmat9F-20" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;defaultLabelBackgroundColor=page;labelPadding=0 4;" target="r84S7dkzUprbijCmat9F-34">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="r84S7dkzUprbijCmat9F-51" parent="1" style="rounded=1;arcSize=4;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#1B365D;strokeWidth=1.5;align=left;verticalAlign=top;spacingLeft=12;spacingTop=6;fontSize=10;fontColor=#1B365D;" value="&lt;b&gt;NOTAS TÉCNICAS&lt;/b&gt;&lt;br&gt;• Topic eventos-distribuidos: 3 particiones · replication.factor=3 · Isr: 1,2,3 · un líder por broker.&lt;br&gt;• acks=all + min.insync.replicas=2: confirma tras replicar en el ISR; si el ISR cae por debajo de 2, rechaza (NotEnoughReplicas).&lt;br&gt;• Failover: si cae un broker, el controlador KRaft activo promueve un nuevo líder desde el ISR (tolera 1 nodo caído).&lt;br&gt;• Sin ZooKeeper: metadatos en el log Raft __cluster_metadata; si cae el controlador activo, los 2 votantes restantes eligen otro." vertex="1">
+          <mxGeometry height="115" width="700" x="-351" y="767" as="geometry" />
+        </mxCell>
+        <mxCell id="r84S7dkzUprbijCmat9F-66" parent="1" style="rounded=1;arcSize=4;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#1B365D;strokeWidth=1.5;verticalAlign=top;align=left;spacingLeft=14;spacingTop=4;fontSize=12;fontStyle=1;fontColor=#1B365D;" value="LEYENDA" vertex="1">
+          <mxGeometry height="115" width="600" x="396" y="767" as="geometry" />
+        </mxCell>
+        <mxCell id="r84S7dkzUprbijCmat9F-52" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1E7E34;strokeColor=#145A24;strokeWidth=2;arcSize=15;" value="" vertex="1">
+          <mxGeometry height="18" width="36" x="418" y="800" as="geometry" />
+        </mxCell>
+        <mxCell id="r84S7dkzUprbijCmat9F-53" parent="1" style="text;html=1;align=left;verticalAlign=middle;fontSize=11;fontColor=#343A40;" value="Líder de Partición" vertex="1">
+          <mxGeometry height="22" width="140" x="461" y="798" as="geometry" />
+        </mxCell>
+        <mxCell id="r84S7dkzUprbijCmat9F-54" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E9ECEF;strokeColor=#6C757D;arcSize=15;" value="" vertex="1">
+          <mxGeometry height="18" width="36" x="608" y="800" as="geometry" />
+        </mxCell>
+        <mxCell id="r84S7dkzUprbijCmat9F-55" parent="1" style="text;html=1;align=left;verticalAlign=middle;fontSize=11;fontColor=#343A40;" value="Réplica Follower" vertex="1">
+          <mxGeometry height="22" width="140" x="651" y="798" as="geometry" />
+        </mxCell>
+        <mxCell id="r84S7dkzUprbijCmat9F-56" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF7E6;strokeColor=#D97706;strokeWidth=2;arcSize=15;" value="" vertex="1">
+          <mxGeometry height="18" width="36" x="803" y="800" as="geometry" />
+        </mxCell>
+        <mxCell id="r84S7dkzUprbijCmat9F-57" parent="1" style="text;html=1;align=left;verticalAlign=middle;fontSize=11;fontColor=#343A40;" value="Plano de Control KRaft" vertex="1">
+          <mxGeometry height="22" width="150" x="846" y="798" as="geometry" />
+        </mxCell>
+        <mxCell id="r84S7dkzUprbijCmat9F-58" edge="1" parent="1" style="endArrow=block;startArrow=block;html=1;rounded=0;strokeColor=#1E7E34;strokeWidth=2;dashed=1;dashPattern=8 4;startFill=1;endFill=1;startSize=4;endSize=4;" value="">
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <mxPoint x="418" y="834" as="sourcePoint" />
+            <mxPoint x="454" y="834" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="r84S7dkzUprbijCmat9F-59" parent="1" style="text;html=1;align=left;verticalAlign=middle;fontSize=11;fontColor=#343A40;" value="Replicación ISR" vertex="1">
+          <mxGeometry height="22" width="140" x="461" y="823" as="geometry" />
+        </mxCell>
+        <mxCell id="r84S7dkzUprbijCmat9F-60" edge="1" parent="1" style="endArrow=block;html=1;rounded=0;strokeColor=#1B365D;strokeWidth=2;endFill=1;endSize=5;" value="">
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <mxPoint x="608" y="834" as="sourcePoint" />
+            <mxPoint x="644" y="834" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="r84S7dkzUprbijCmat9F-61" parent="1" style="text;html=1;align=left;verticalAlign=middle;fontSize=11;fontColor=#343A40;" value="Flujo de Mensajes" vertex="1">
+          <mxGeometry height="22" width="140" x="651" y="823" as="geometry" />
+        </mxCell>
+        <mxCell id="r84S7dkzUprbijCmat9F-62" edge="1" parent="1" style="endArrow=oval;startArrow=oval;html=1;rounded=0;strokeColor=#D97706;strokeWidth=2;dashed=1;dashPattern=3 3;startFill=1;endFill=1;startSize=4;endSize=4;" value="">
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <mxPoint x="803" y="834" as="sourcePoint" />
+            <mxPoint x="839" y="834" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="r84S7dkzUprbijCmat9F-63" parent="1" style="text;html=1;align=left;verticalAlign=middle;fontSize=11;fontColor=#343A40;" value="Consenso KRaft (Raft)" vertex="1">
+          <mxGeometry height="22" width="150" x="846" y="823" as="geometry" />
+        </mxCell>
+        <mxCell id="r84S7dkzUprbijCmat9F-64" edge="1" parent="1" style="endArrow=none;html=1;rounded=0;strokeColor=#CED4DA;strokeWidth=1;" value="">
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <mxPoint x="418" y="854" as="sourcePoint" />
+            <mxPoint x="988" y="854" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="r84S7dkzUprbijCmat9F-65" parent="1" style="text;html=1;align=right;verticalAlign=middle;fontSize=11;fontStyle=3;fontColor=#1B365D;" value="Elaborado por: Kenny Isaías España Vera — UTEQ (2026)" vertex="1">
+          <mxGeometry height="24" width="570" x="418" y="858" as="geometry" />
+        </mxCell>
+        <mxCell id="r84S7dkzUprbijCmat9F-68" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" value="&lt;b&gt;&lt;font style=&quot;font-size: 22px;&quot;&gt;Arquitectura del Clúster Apache Kafka en modo KRaft (sin Zookeeper)&lt;/font&gt;&lt;/b&gt;" vertex="1">
+          <mxGeometry height="30" width="786.5" x="71.5" y="-130" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
