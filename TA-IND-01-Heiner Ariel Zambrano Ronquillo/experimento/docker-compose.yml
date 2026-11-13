@@ -1,0 +1,111 @@
+services:
+  # Servicio inicializador de permisos para volúmenes persistentes locales
+  # Necesario porque las imágenes Chainguard ejecutan como usuario no-root (UID 65532)
+  init-permissions:
+    image: mirror.gcr.io/library/busybox:1.37
+    container_name: minio-init-permissions
+    user: "0:0"
+    volumes:
+      - ./data:/data
+      - ./mc-config:/mc-config
+    command: >
+      sh -c "mkdir -p /data/minio1 /data/minio2 /data/minio3 /data/minio4 /mc-config &&
+             chown -R 65532:65532 /data /mc-config &&
+             chmod -R 775 /data /mc-config"
+
+  # Nodo 1 del clúster distribuido MinIO
+  minio1:
+    image: cgr.dev/chainguard/minio:latest
+    container_name: minio1
+    restart: unless-stopped
+    depends_on:
+      init-permissions:
+        condition: service_completed_successfully
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin123
+    ports:
+      - "9000:9000"
+      - "9010:9001"
+    volumes:
+      - ./data/minio1:/data
+    networks:
+      - minio-distributed-net
+    command: server http://minio{1...4}/data --console-address ":9001"
+
+  # Nodo 2 del clúster distribuido MinIO
+  minio2:
+    image: cgr.dev/chainguard/minio:latest
+    container_name: minio2
+    restart: unless-stopped
+    depends_on:
+      init-permissions:
+        condition: service_completed_successfully
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin123
+    ports:
+      - "9001:9000"
+      - "9011:9001"
+    volumes:
+      - ./data/minio2:/data
+    networks:
+      - minio-distributed-net
+    command: server http://minio{1...4}/data --console-address ":9001"
+
+  # Nodo 3 del clúster distribuido MinIO
+  minio3:
+    image: cgr.dev/chainguard/minio:latest
+    container_name: minio3
+    restart: unless-stopped
+    depends_on:
+      init-permissions:
+        condition: service_completed_successfully
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin123
+    ports:
+      - "9002:9000"
+      - "9012:9001"
+    volumes:
+      - ./data/minio3:/data
+    networks:
+      - minio-distributed-net
+    command: server http://minio{1...4}/data --console-address ":9001"
+
+  # Nodo 4 del clúster distribuido MinIO
+  minio4:
+    image: cgr.dev/chainguard/minio:latest
+    container_name: minio4
+    restart: unless-stopped
+    depends_on:
+      init-permissions:
+        condition: service_completed_successfully
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin123
+    ports:
+      - "9003:9000"
+      - "9013:9001"
+    volumes:
+      - ./data/minio4:/data
+    networks:
+      - minio-distributed-net
+    command: server http://minio{1...4}/data --console-address ":9001"
+
+  # Cliente oficial MinIO Client (mc) para interacción y pruebas bajo demanda
+  mc:
+    image: cgr.dev/chainguard/minio-client:latest
+    container_name: minio-mc-client
+    profiles:
+      - cli
+    environment:
+      MC_CONFIG_DIR: /tmp/mc
+    volumes:
+      - ./mc-config:/tmp/mc
+    networks:
+      - minio-distributed-net
+
+networks:
+  minio-distributed-net:
+    driver: bridge
