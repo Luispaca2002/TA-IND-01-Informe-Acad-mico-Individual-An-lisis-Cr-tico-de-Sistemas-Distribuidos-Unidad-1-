@@ -23,6 +23,11 @@
   * Retorno a la terminal tras finalizar el dibujo para comprobar el estado de los contenedores mediante `docker compose ps`.
   * Como evidencia de este flujo de trabajo combinado, la salida refleja el estado **`Up About an hour`** en los 4 nodos (`minio1`, `minio2`, `minio3`, `minio4`), demostrando que el clúster se mantuvo estable y en ejecución continua durante todo el tiempo en que se elaboraba el bosquejo.
   * Registro de la captura de pantalla en `capturas/01_despligue_de_nodos.png` con el prompt de identidad (`[Heiner@HP]`, marcas de tiempo de 22:13 a 23:19 y `gh:Heiner-ZZZ`).
+* **23:26 - 23:30 | Configuración del Cliente MinIO (mc) y Enlace de Comunicación (Captura 2):**
+  * Ejecución del comando de inicialización y vinculación del cliente oficial `mc` en `experimento/`:
+    `docker compose run --rm mc alias set localminio http://minio1:9000 minioadmin minioadmin123`
+  * Establecimiento del enlace de comunicación entre el contenedor efímero del cliente y el endpoint de la API S3 del nodo `minio1:9000` en la red interna `minio-distributed-net`, persistiendo la configuración y claves de acceso en el volumen `./mc-config`.
+  * Registro de la segunda captura de evidencia en `capturas/02_Configuración del cliente mc.png` evidenciando la confirmación del alias (`Added 'localminio' successfully`) con el prompt de identidad activo.
 
 ### 2. Problemas Encontrados y Soluciones Aplicadas
 * **Duda conceptual sobre el modelo de comunicación interna:**
@@ -33,7 +38,7 @@
   * *Solución:* Se automatizó el servicio `init-permissions` con BusyBox para ejecutar `chown -R 65532:65532` y `chmod -R 775` antes del encendido de los nodos.
 
 ### 3. Tiempo Dedicado
-* **Duración Total:** 2 horas y 15 minutos (distribuidas entre la configuración/despliegue del clúster, la elaboración del bosquejo a mano en papel y la verificación de la evidencia de terminal).
+* **Duración Total:** 2 horas y 30 minutos (distribuidas entre la configuración/despliegue del clúster, la elaboración del bosquejo a mano en papel, la verificación del estado y la configuración del cliente mc).
 
 ---
 
