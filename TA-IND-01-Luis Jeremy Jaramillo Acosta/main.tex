@@ -1,0 +1,89 @@
+\documentclass[12pt,a4paper]{article}
+
+% --- PAQUETES ESENCIALES ---
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[spanish,es-tabla]{babel}
+\usepackage{geometry}
+\geometry{top=2.5cm, bottom=2.5cm, left=2.5cm, right=2.5cm}
+\usepackage{newtxtext,newtxmath}
+\usepackage{parskip}
+\usepackage{ragged2e}
+\usepackage{enumitem}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{csquotes}
+\usepackage{hyperref}
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    urlcolor=blue,
+    citecolor=blue
+}
+
+\usepackage[backend=biber,style=ieee,sorting=none]{biblatex}
+% \addbibresource{referencias.bib}
+
+\begin{document}
+\justifying
+
+% =========================================================================
+% 1. CARÁTULA
+% =========================================================================
+\begin{titlepage}
+    \centering
+    \vspace*{1cm}
+    {\Large \textbf{UNIVERSIDAD TÉCNICA ESTATAL DE QUEVEDO}}\\[0.3cm]
+    {\large \textbf{FACULTAD DE CIENCIAS DE LA INGENIERÍA}}\\[0.2cm]
+    {\normalsize \textbf{CARRERA DE INGENIERÍA EN SOFTWARE}}\\[2cm]
+
+    {\large \textbf{ASIGNATURA: APLICACIONES DISTRIBUIDAS}}\\[0.4cm]
+    {\Large \textbf{INFORME ACADÉMICO INDIVIDUAL (TA-IND-01)}}\\[0.4cm]
+    {\large \textbf{Tema: Análisis crítico comparativo de ClickHouse como sistema de gestión de bases de datos analítico distribuido frente a Apache Cassandra}}\\[2.5cm]
+
+    \begin{flushleft}
+        \textbf{Estudiante:} Luis Jeremy Jaramillo Acosta \\[0.2cm]
+        \textbf{Paralelo:} A \\[0.2cm]
+        \textbf{Código de Actividad:} TA-IND-01 \\[0.2cm]
+        \textbf{Fecha:} Noviembre de 2026 \\[0.2cm]
+        \textbf{URL del Repositorio:} \url{https://github.com/Luispaca2002/TA-IND-01-Informe-Acad-mico-Individual-An-lisis-Cr-tico-de-Sistemas-Distribuidos-Unidad-1-}
+    \end{flushleft}
+
+    \vfill
+    {\small Quevedo -- Los Ríos -- Ecuador \\ 2026}
+\end{titlepage}
+
+% =========================================================================
+% 2. RESUMEN (168 palabras)
+% =========================================================================
+\section*{Resumen}
+El presente informe desarrolla un análisis crítico de ClickHouse, un sistema de gestión de bases de datos orientado a columnas para el procesamiento analítico en línea (OLAP) distribuido, contrastando su arquitectura con el modelo de almacenamiento particionado de fila ancha de Apache Cassandra. El estudio evalúa el comportamiento de ClickHouse bajo los principios de la Unidad 1: transparencias de distribución, ubicación dentro del teorema CAP y el modelo PACELC, mecanismos de comunicación entre procesos (protocolo nativo sobre sockets TCP y coordinación mediante consenso Raft en ClickHouse Keeper) y estrategias de tolerancia a fallos mediante motores de la familia MergeTree replicados. Para respaldar el análisis teórico, se despliega un entorno experimental en contenedores Docker donde se evalúa la inserción por lotes, el particionamiento físico de datos y el comportamiento ante la indisponibilidad de un nodo réplica. Finalmente, se contrastan estos conceptos con sistemas del entorno local ecuatoriano y se concluye que ClickHouse optimiza la latencia de agregación masiva sacrificando las actualizaciones transaccionales punto a punto que caracterizan a Cassandra.
+
+\newpage
+
+% =========================================================================
+% 3. INTRODUCCIÓN
+% =========================================================================
+\section{Introducción}
+El crecimiento exponencial de los registros de telemetría, transacciones financieras e interacciones digitales ha expuesto las limitaciones de las bases de datos relacionales monolíticas cuando deben ejecutar consultas de agregación sobre cientos de millones de filas en tiempo real. Mientras los sistemas transaccionales (OLTP) priorizan la escritura e indexación de registros individuales, el análisis de grandes volúmenes de datos requiere leer únicamente un subconjunto de atributos a través de conjuntos masivos de información sin bloquear los nodos de almacenamiento.
+
+ClickHouse resuelve este problema mediante una arquitectura distribuida de almacenamiento columnar compartido nada (\textit{shared-nothing}), diseñada originalmente para alimentar la plataforma de analítica web Yandex.Metrica y actualmente adoptada a escala global por organizaciones como Cloudflare (para procesar millones de peticiones HTTP por segundo), Uber (para el almacenamiento y consulta de registros de plataforma), eBay y Deutsche Bank.
+
+Se eligió analizar ClickHouse y compararlo con Apache Cassandra porque ambos sistemas abordan el escalamiento horizontal de datos masivos desde filosofías opuestas en sistemas distribuidos: mientras ClickHouse emplea fragmentación (\textit{sharding}) con ejecución vectorizada y coordinación fuerte por consenso para cargas analíticas, Apache Cassandra adopta un anillo descentralizado \textit{peer-to-peer} con hashing consistente orientado a la disponibilidad continua de escritura.
+
+\section{Arquitectura del Sistema}
+\section{Análisis con los Conceptos de la Unidad 1}
+\section{Experimentación Propia}
+\section{Ejemplos del Entorno del Estudiante}
+\section{Análisis Comparativo}
+\section{Postura Crítica}
+\section{Conclusiones}
+\section{Declaración de Uso de Inteligencia Artificial}
+
+\appendix
+\section{Anexo A: Esquema Inicial a Mano}
+\section{Anexo B: Capturas de Lectura de Fuentes}
+
+\end{document}
+
