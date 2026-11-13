@@ -9,30 +9,20 @@
 ## Sesión 1: Jueves, 12 de noviembre de 2026
 
 ### 1. Actividades Realizadas
-* **Definición Temática y Arquitectónica:** Selección formal de **MinIO** (en modo distribuido con Erasure Coding) como sistema distribuido principal para el análisis crítico, estableciendo a **Apache HDFS** como sistema secundario comparativo (arquitectura de objetos descentralizada vs. sistema de archivos basado en bloques jerárquico).
-* **Diseño y Despliegue de Infraestructura Local de Laboratorio:** 
-  * Configuración del archivo `experimento/docker-compose.yml` para desplegar un clúster distribuido de 4 nodos (`minio1`, `minio2`, `minio3`, `minio4`) en una red bridge dedicada (`minio-distributed-net`).
-  * Implementación del servicio `init-permissions` con BusyBox para inicializar directorios y aplicar permisos `chown -R 65532:65532` sobre los volúmenes locales (`./data`), requerido por las imágenes de seguridad Chainguard que ejecutan bajo usuario no-root.
-  * Configuración del servicio cliente oficial `mc` bajo perfil CLI con volumen persistente para perfiles y credenciales (`/tmp/mc`).
-* **Configuración del Entorno Académico en LaTeX:**
-  * Estructuración del documento principal `latex/main.tex` bajo clase `article` en español con `babel`, motor `biblatex` (estilo IEEE con backend Biber), `booktabs`, `graphicx`, `tikz` e hipervínculos.
-  * Verificación sintáctica del ciclo completo de compilación (`pdflatex -> biber -> pdflatex -> pdflatex`) garantizando la generación limpia de `main.pdf`.
-* **Elaboración del Bosquejo Arquitectónico Inicial (Evidencia Anexo A):**
-  * Dibujo manual a mano alzada en papel cuadriculado con nombre completo y fecha (12/11/2026).
-  * Diagramación de la interacción del cliente `mc` vía API S3 REST (HTTP), el rol de coordinador efímero asumido por el nodo receptor (`minio1`), la malla simétrica *Shared-Nothing*, la dispersión paralela vía RPC, y la división en 4 bloques locales (`xl.meta` + $D_1, D_2, P_1, P_2$) con cálculo de paridad Reed-Solomon y quórum de tolerancia a fallos.
-  * Digitalización y respaldo de la evidencia gráfica en `figura/anexo_a_bosquejo_mano.jpg`.
-* **Diseño del Protocolo Experimental:** Redacción de la guía técnica `experimento/comando_prueba.md` detallando los escenarios de prueba: levantamiento, inspección de topología, subida de objetos, inyección de fallas por caída de nodos, verificación de quórum de lectura/escritura y auto-sanación (*healing*).
+* **Definición Temática:** Elección formal de **MinIO** como sistema distribuido principal y **Apache HDFS** como sistema secundario comparativo.
+* **Diseño Conceptual de la Arquitectura:** Análisis preliminar de los componentes del sistema (cliente S3, nodo coordinador efímero, malla simétrica por RPC y almacenamiento de fragmentos de datos y paridad mediante Erasure Coding).
+* **Elaboración del Bosquejo Arquitectónico Inicial (Anexo A):**
+  * Dibujo manual a mano alzada en papel cuadriculado con nombre completo (*Heiner Ariel Zambrano Ronquillo*) y fecha (*12/11/2026*).
+  * Diagramación del flujo: petición S3 (`PUT/GET`), cálculo de hashing y paridad (2 datos + 2 paridad), dispersión paralela vía RPC a los nodos del clúster (`minio2`, `minio3`, `minio4`), almacenamiento en volúmenes `/data` y quórum de tolerancia a fallos.
+  * Digitalización y subida de la imagen al repositorio bajo la ruta `figura/bosquejo_inicial_amano.jpeg`.
 
 ### 2. Problemas Encontrados y Soluciones Aplicadas
-1. **Restricción de Acceso a Imágenes Oficiales de MinIO:**
-   * *Problema:* Las imágenes oficiales históricas de MinIO fueron retiradas de Docker Hub y los registros alternativos exigen credenciales privadas.
-   * *Solución:* Se adoptaron las imágenes enterprise/hardened de Chainguard (`cgr.dev/chainguard/minio` y `cgr.dev/chainguard/minio-client`). Dado que estas imágenes corren estrictamente bajo UID no privilegiado `65532`, se formuló un contenedor previo `init-permissions` que asegura la propiedad de los directorios de datos antes del arranque de los nodos.
-2. **Clarificación Conceptual sobre el Flujo de Dispersión de Datos:**
-   * *Problema:* Existía una duda conceptual sobre si MinIO transfería los datos entre nodos de manera secuencial (similar a la replicación en tubería / *pipelining* de Apache HDFS) o en paralelo, y sobre qué componente actuaba como coordinador.
-   * *Solución:* Se investigó y fundamentó la arquitectura simétrica *Shared-Nothing* de MinIO: no existe un nodo maestro fijo (a diferencia del NameNode de HDFS), sino que el nodo que recibe la petición HTTP actúa como coordinador temporal, calcula la matriz Reed-Solomon en memoria y dispersa concurrentemente las operaciones de escritura RPC a todos los nodos en paralelo. Esta comprensión técnica permitió diagramar con exactitud el bosquejo del Anexo A.
+* **Duda conceptual sobre el modelo de comunicación interna:**
+  * *Problema:* Confusión inicial sobre si MinIO repartía los bloques entre nodos de forma secuencial en cadena (estilo replicación en tubería / *pipelining* de HDFS) o de forma simultánea.
+  * *Solución:* Se aclaró que MinIO utiliza una arquitectura simétrica (*Shared-Nothing*) donde el nodo receptor calcula la matriz Reed-Solomon y dispara las escrituras RPC a todos los nodos en paralelo, plasmando este comportamiento en el dibujo.
 
 ### 3. Tiempo Dedicado
-* **Duración:** 3 horas y media.
+* **Duración:** 1 hora y 30 minutos.
 
 ---
 
