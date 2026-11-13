@@ -32,6 +32,11 @@
     `docker compose run --rm mc admin info localminio`
   * Verificación del estado de salud del sistema distribuido: confirmación de 4/4 nodos en línea con `Uptime: 1 hour`, `Network: 4/4 OK`, `Drives: 1/1 OK` por nodo, y resumen global de **`4 drives online, 0 drives offline, EC:2`** (conjunto simétrico de Erasure Coding con 2 bloques de paridad Reed-Solomon).
   * Registro de la tercera evidencia en `capturas/03_ topología Erasure Coding.png` con la salida completa del comando y el prompt de identidad activo.
+* **23:34:45 | Creación del Bucket Distribuido (Captura 4):**
+  * A las **23:34:45** se ejecutó el comando de aprovisionamiento de almacenamiento de objetos:
+    `docker compose run --rm mc mb localminio/datos-distribuidos`
+  * Creación exitosa del bucket `datos-distribuidos` en el clúster (`Bucket created successfully 'localminio/datos-distribuidos'.`), verificando la propagación coordinada de metadatos en el clúster distribuido.
+  * Registro de la cuarta evidencia en `capturas/04_Creación del bucket distribuido.png` mostrando la confirmación y el prompt de identidad con hora exacta (`[Heiner@HP] [2026-11-12 23:34:49] (gh:Heiner-ZZZ)`).
 
 ### 2. Problemas Encontrados y Soluciones Aplicadas
 * **Duda conceptual sobre el modelo de comunicación interna:**
@@ -42,7 +47,7 @@
   * *Solución:* Se automatizó el servicio `init-permissions` con BusyBox para ejecutar `chown -R 65532:65532` y `chmod -R 775` antes del encendido de los nodos.
 
 ### 3. Tiempo Dedicado
-* **Duración Total:** 2 horas y 15 minutos (comprendidas entre las 21:30 y las 23:45, distribuidas entre el análisis, el despliegue del clúster, la elaboración del bosquejo físico y la toma de evidencias de terminal).
+* **Duración Total:** 2 horas y 20 minutos (comprendidas entre las 21:30 y las 23:50, distribuidas entre el análisis, el despliegue del clúster, la elaboración del bosquejo físico y la toma de evidencias de terminal).
 
 ---
 
