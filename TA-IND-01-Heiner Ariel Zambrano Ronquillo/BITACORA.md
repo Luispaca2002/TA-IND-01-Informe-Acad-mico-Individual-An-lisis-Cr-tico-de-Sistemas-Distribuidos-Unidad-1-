@@ -106,6 +106,13 @@
   * Confirmación visual: `minio1` pasa a estado detenido (círculo gris inactivo), mientras `minio2`, `minio3` y `minio4` continúan operando normalmente (círculos verdes).
   * Descenso correlativo en el consumo de recursos a `194.39 MB` de memoria y `0.38%` de CPU, validando que el clúster sigue activo en modo resiliente.
   * Registro de la novena evidencia en `capturas/09_Estado_cluster_con_fallo_minio1.png`.
+* **01:35:11 - 01:36:18 | Consulta Administrativa Fallida tras Caída de Nodo (Captura 10):**
+  * A las **01:35:11** se ejecutó la consulta administrativa:  
+    `docker compose run --rm mc admin info localminio`
+  * A las **01:36:18** el comando retornó el error de resolución de red:  
+    `mc: <ERROR> Unable to get service info. Get "http://minio1:9000/minio/admin/v3/info?metrics=false": dial tcp: lookup minio1 on 127.0.0.11:53: no such host.`
+  * Comprobación empírica directa de la falta de transparencia de fallos en el cliente sin balanceador de carga: el clúster como conjunto retiene quórum en sus 3 nodos sobrevivientes, pero el cliente `mc` queda bloqueado al depender de la URL estática del nodo apagado.
+  * Registro de la décima evidencia en `capturas/10_Fallo_resolucion_nodo1_apagado.png`.
 
 ### 2. Problemas Encontrados y Soluciones Aplicadas
 * **Ruta de archivo no encontrada dentro del contenedor de `mc`:**
@@ -114,10 +121,9 @@
 * **Requisito estricto de fuentes indexadas con DOI verificable:**
   * *Problema:* La rúbrica penaliza con calificación cero cualquier referencia inexistente o con DOI discordante.
   * *Solución:* Se verificó cada DOI directamente en sus plataformas editoriales originales (IEEE, ACM, Elsevier, Scopus, IPSJ, arXiv), garantizando concordancia total entre autores, título, volumen, año y enlace persistente.
-* **Comprobación de tolerancia a fallos y quórum con nodo fuera de línea:**
-  * *Problema:* Se requería evidenciar que la caída de un nodo no provoca pérdida de disponibilidad en MinIO gracias a la dispersión de fragmentos Reed-Solomon.
-  * *Solución:* Se detuvo `minio1` de forma aislada vía Docker CLI, verificando en Docker Desktop que los 3 nodos restantes sostienen el quórum mínimo necesario de lectura/escritura ($N/2 + 1 = 3$).
+* **Fallo de resolución DNS en el cliente `mc` ante nodo detenido:**
+  * *Problema:* Al ejecutar `mc admin info localminio`, la consulta falló con `dial tcp: lookup minio1 on 127.0.0.11:53: no such host` debido a que el DNS de Docker dio de baja inmediatamente el registro de `minio1` y el alias `localminio` apuntaba fijamente a dicho contenedor.
+  * *Solución:* Se analizó el comportamiento bajo los conceptos de la Unidad 1 (Transparencia de Fallos y topología *Shared-Nothing*). Se evidenció que el clúster sigue operativo reteniendo quórum ($3/4 \ge 3$), pero el cliente carece de conmutación por error (*failover*), determinando la necesidad de reconfigurar el alias hacia un nodo par activo (`http://minio2:9000`) y justificando técnicamente el uso de balanceadores de carga L4/L7 en producción.
 
 ### 3. Tiempo Dedicado
-* **Duración:** 1 hora (00:10 a 01:10).
-* **Duración:** 1 hora y 30 minutos (00:10 a 01:40).
+* **Duración:** 1 hora y 45 minutos (00:10 a 01:55).
