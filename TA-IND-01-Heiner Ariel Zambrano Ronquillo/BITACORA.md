@@ -85,11 +85,27 @@
   * Registro de la sexta evidencia en `capturas/06_Verificacion_objeto_en_bucket.png` con prompt exacto (`[Heiner@HP] [2026-11-13 00:53:18] (gh:Heiner-ZZZ)`).
 * **00:54:22 | Versionado de la Guía de Comandos del Experimento:**
   * Commit formal (`aa5a2a8`) agregando `experimento/comando_prueba.md` con las instrucciones detalladas de inyección de fallos, tolerancia y recuperación.
+* **00:55:24 | Monitoreo del Clúster en Docker Desktop (Captura 7):**
+  * A las **00:55:24** (reloj de Windows `0:55`) se capturó el panel de gestión de Docker Desktop.
+  * Verificación del stack `experimento` con los 4 contenedores MinIO activos (`minio1` a `minio4`) en sus respectivos puertos (9000-9003) y `minio-init-permissions` detenido tras ajustar permisos.
+  * Métricas de consumo del clúster saludable: `259.43 MB` de RAM y `0.68%` de CPU (sobre 12 núcleos).
+  * Registro de la séptima evidencia en `capturas/07_Estado_cluster_Docker_Desktop.png`.
 * **00:55 - 01:07 | Búsqueda, Verificación Rigurosa y Compilación de Bibliografía IEEE:**
   * Búsqueda e inspección de artículos científicos recientes (2021–2026) en bases de datos académicas (IEEE Xplore, ACM Digital Library, Elsevier, Scopus, IPSJ y arXiv) para fundamentar el análisis crítico de MinIO vs HDFS y el Anexo B.
   * Verificación individual de DOIs activos para evitar penalizaciones de la rúbrica.
     1. *Han et al. (2025)* - IEEE Micro (DOI: 10.1109/MM.2025.3564477).
   * Inclusión de `\nocite{*}` en `informe/main.tex` y validación de compilación completa en MiKTeX (`pdflatex -> biber -> pdflatex -> pdflatex`). Generación limpia de `informe/main.pdf` con 0 errores y 6 páginas.
+* **01:31:16 - 01:31:29 | Inyección de Fallos: Detención de Nodo minio1 (Captura 8):**
+  * A las **01:31:16** se ejecutó la inyección controlada de fallo desconectando el primer nodo de almacenamiento:  
+    `docker stop minio1`
+  * Salida confirmada: `minio1`.
+  * Propósito experimental: comprobar el comportamiento del clúster bajo degradación de hardware y evaluar la persistencia del quórum con $3/4$ nodos activos frente a la configuración de paridad Reed-Solomon ($K=2, M=2$).
+  * Registro de la octava evidencia en `capturas/08_Inyeccion_fallo_detencion_minio1.png` con prompt exacto (`[Heiner@HP] [2026-11-13 01:31:16] (gh:Heiner-ZZZ)`).
+* **01:32:37 | Inspección de Estado Degradado en Docker Desktop (Captura 9):**
+  * A las **01:32:37** se registró la consola de Docker Desktop evidenciando el estado del clúster tras la inyección del fallo.
+  * Confirmación visual: `minio1` pasa a estado detenido (círculo gris inactivo), mientras `minio2`, `minio3` y `minio4` continúan operando normalmente (círculos verdes).
+  * Descenso correlativo en el consumo de recursos a `194.39 MB` de memoria y `0.38%` de CPU, validando que el clúster sigue activo en modo resiliente.
+  * Registro de la novena evidencia en `capturas/09_Estado_cluster_con_fallo_minio1.png`.
 
 ### 2. Problemas Encontrados y Soluciones Aplicadas
 * **Ruta de archivo no encontrada dentro del contenedor de `mc`:**
@@ -98,6 +114,10 @@
 * **Requisito estricto de fuentes indexadas con DOI verificable:**
   * *Problema:* La rúbrica penaliza con calificación cero cualquier referencia inexistente o con DOI discordante.
   * *Solución:* Se verificó cada DOI directamente en sus plataformas editoriales originales (IEEE, ACM, Elsevier, Scopus, IPSJ, arXiv), garantizando concordancia total entre autores, título, volumen, año y enlace persistente.
+* **Comprobación de tolerancia a fallos y quórum con nodo fuera de línea:**
+  * *Problema:* Se requería evidenciar que la caída de un nodo no provoca pérdida de disponibilidad en MinIO gracias a la dispersión de fragmentos Reed-Solomon.
+  * *Solución:* Se detuvo `minio1` de forma aislada vía Docker CLI, verificando en Docker Desktop que los 3 nodos restantes sostienen el quórum mínimo necesario de lectura/escritura ($N/2 + 1 = 3$).
 
 ### 3. Tiempo Dedicado
 * **Duración:** 1 hora (00:10 a 01:10).
+* **Duración:** 1 hora y 30 minutos (00:10 a 01:40).
