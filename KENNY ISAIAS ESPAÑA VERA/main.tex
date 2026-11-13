@@ -1,0 +1,151 @@
+% =====================================================================
+% TA-IND-01 -- Informe Academico Individual
+% Analisis Critico de un Sistema Distribuido Real: Apache Kafka (KRaft)
+% Compilacion: pdflatex -> biber -> pdflatex -> pdflatex
+% =====================================================================
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage[spanish,es-tabla,es-nodecimaldot]{babel}
+\usepackage{csquotes}
+\usepackage[a4paper,top=2.5cm,bottom=2.5cm,left=2.5cm,right=2.5cm]{geometry}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{float}
+\usepackage{array}
+\usepackage{amsmath}
+\usepackage{setspace}
+\usepackage{xurl}
+\usepackage[backend=biber,style=ieee]{biblatex}
+\addbibresource{referencias.bib}
+\usepackage[hidelinks]{hyperref}
+
+\setstretch{1.15}
+\setlength{\parskip}{0.4em}
+
+\begin{document}
+
+% =====================================================================
+% 1. CARATULA
+% =====================================================================
+\begin{titlepage}
+\thispagestyle{empty}
+\centering
+{\Large\bfseries Universidad Técnica Estatal de Quevedo (UTEQ)\par}
+\vspace{0.3cm}
+{\large Facultad de Ciencias de la Computación (FCC)\par}
+\vspace{0.2cm}
+{\large Carrera de Ingeniería de Software\par}
+\vspace{1.8cm}
+{\large Asignatura: Sistemas Distribuidos (7mo Nivel / Semestre)\par}
+\vspace{1.5cm}
+{\large\bfseries TA-IND-01 --- Informe Académico Individual:\par}
+\vspace{0.2cm}
+{\large\bfseries Análisis Crítico de un Sistema Distribuido Real\par}
+\vspace{1cm}
+\rule{0.85\textwidth}{0.4pt}\par
+\vspace{0.4cm}
+{\LARGE\bfseries Apache Kafka en modo KRaft:\\[0.2cm]
+transparencias, CAP/PACELC, comunicación y tolerancia a fallos\par}
+\vspace{0.4cm}
+\rule{0.85\textwidth}{0.4pt}\par
+\vfill
+\begin{tabular}{>{\bfseries}r l}
+Estudiante: & Kenny Isaías España Vera \\[0.15cm]
+Paralelo:   & 7mo SOFTWARE A \\[0.15cm]
+Fecha:      & 13 de noviembre de 2026 \\
+\end{tabular}
+\vspace{1.2cm}
+
+{\bfseries Repositorio GitHub:}\par
+\vspace{0.15cm}
+{\small\url{https://github.com/Luispaca2002/TA-IND-01-Informe-Acad-mico-Individual-An-lisis-Cr-tico-de-Sistemas-Distribuidos-Unidad-1-.git}\par}
+\vspace{1cm}
+{\large Quevedo -- Ecuador\par}
+\end{titlepage}
+
+% =====================================================================
+% 2. RESUMEN
+% =====================================================================
+\newpage
+\thispagestyle{empty}
+\section*{Resumen}
+
+Este informe analiza Apache Kafka, una plataforma de streaming de eventos basada en un log particionado y replicado, en su modo KRaft, que sustituye a ZooKeeper por un quórum de controladores basado en Raft. El análisis aplica los conceptos de la Unidad 1: transparencias de distribución, teorema CAP y su extensión PACELC, modelos de comunicación y tolerancia a fallos. Se contrastaron seis artículos científicos con documentación oficial, un incidente de producción documentado y un clúster propio de tres nodos desplegado con Docker Compose. Los resultados muestran que Kafka no es CP ni AP por naturaleza: con \texttt{acks=all}, \texttt{min.insync.replicas=2} y elección no limpia deshabilitada se comporta como PC/EC, rechazando escrituras antes que perder datos confirmados y pagando latencia de replicación en operación normal. Al detener un nodo, el clúster reeligió líderes y conservó el quórum, pero el cliente que usaba ese nodo como punto de arranque falló, lo que evidencia que la transparencia de fallos termina en el borde del cliente. Frente a RabbitMQ, Kafka gana en retención y paralelismo por partición, pero pierde en enrutamiento flexible y simplicidad operativa.
+
+\vspace{0.4cm}
+\noindent\textbf{Palabras clave:} Apache Kafka, KRaft, teorema CAP, PACELC, tolerancia a fallos, RabbitMQ.
+
+\newpage
+\setcounter{page}{1}
+% La numeracion de secciones arranca en 3 para coincidir con la
+% estructura de 13 secciones de la rubrica (1 = Caratula, 2 = Resumen).
+\setcounter{section}{2}
+
+% =====================================================================
+% 3. INTRODUCCION
+% =====================================================================
+\section{Introducción}
+
+Una cola de mensajes tradicional resuelve un problema concreto: desacoplar a quien produce un trabajo de quien lo ejecuta. El broker guarda el mensaje hasta que un consumidor lo confirma y luego lo elimina. Ese modelo funciona bien para distribuir tareas, pero se vuelve limitante cuando el mismo flujo de datos debe alimentar a varios sistemas con ritmos distintos, cuando se necesita volver a procesar eventos pasados o cuando el volumen obliga a repartir la carga entre muchas máquinas. Apache Kafka aborda ese escenario con otra abstracción: un log de solo escritura al final (\emph{append-only}), dividido en particiones, donde cada mensaje recibe un desplazamiento (\emph{offset}) secuencial y permanece almacenado según una política de retención, sin importar si ya fue leído \cite{raptis2023survey,kafkadocs}. El consumidor, no el broker, lleva la cuenta de por dónde va.
+
+La adopción industrial confirma que el modelo escala. Raptis y Passarella, en una revisión sistemática de unos 70 trabajos, describen a Kafka como una plataforma ampliamente usada para streaming en red, con LinkedIn como caso de referencia \cite{raptis2023survey}. La propia LinkedIn reportó en 2019 más de 100 clústeres, más de 4000 brokers, más de 100\,000 topics, 7 millones de particiones y más de 7 billones (\emph{trillions}) de mensajes diarios \cite{linkedin2019}. Conviene leer esa cifra con cautela: es un dato autorreportado por la empresa que creó Kafka, no una medición auditada, y tiene varios años. Aun así, da una idea del orden de magnitud. En la literatura revisada para este informe, Kafka aparece en manufactura en la nube \cite{pacella2025scalable}, monitoreo de presión de aire en tiempo real \cite{zhou2024distributed}, gestión de datos industriales con OPC UA \cite{lu2025proposal} y plataformas IoT monitoreadas con Elastic Stack \cite{calderon2024monitoring}.
+
+Elegí Kafka por una razón técnica precisa: es uno de los pocos sistemas en los que los compromisos que estudia la Unidad~1 no están ocultos en el diseño, sino expuestos como parámetros. Con \texttt{acks}, \texttt{min.insync.replicas} y \texttt{unclean.leader.election.enable}, el operador decide cuánta consistencia, disponibilidad y latencia quiere en cada topic \cite{kafkadocs}. Además, el sistema acaba de completar un cambio arquitectónico de fondo: la versión 4.0, publicada el 18 de marzo de 2025, es la primera que funciona sin ZooKeeper y depende por completo del quórum KRaft \cite{kafka40release}. Analizar Kafka hoy implica analizar ese nuevo plano de control.
+
+El informe combina tres fuentes de evidencia: seis artículos científicos revisados y subrayados (Anexo~B), documentación oficial y un incidente real de producción, y un clúster de tres nodos en modo KRaft que desplegué localmente para observar la replicación y el comportamiento ante la caída de un nodo.
+
+% =====================================================================
+% 4. ARQUITECTURA DEL SISTEMA
+% =====================================================================
+\section{Arquitectura del sistema}
+\label{sec:arquitectura}
+
+\subsection{Productores}
+
+Un productor publica registros formados por una clave y un valor en un topic \cite{raptis2023survey}. La clave determina la partición de destino: el particionador por defecto aplica un hash sobre la clave, de modo que todos los registros con la misma clave caen en la misma partición y conservan su orden relativo \cite{kafkadocs}. Esta decisión de diseño tiene una consecuencia directa: Kafka garantiza orden por partición, no por topic. El productor también agrupa registros en lotes y puede comprimirlos. Lu et al. compararon gzip, lz4 y snappy sobre mensajes JSON de 520 a 600 bytes y eligieron lz4 por su equilibrio entre tasa de compresión y velocidad, una elección adecuada para procesamiento sensible a la latencia \cite{lu2025proposal}.
+
+\subsection{Brokers, topics y particiones}
+
+Un clúster está formado por varios brokers, y las particiones de un mismo topic se distribuyen entre ellos \cite{zhou2024distributed}. La partición es la unidad básica de paralelismo: es una secuencia ordenada de mensajes en la que cada nuevo registro se agrega al final y recibe un offset secuencial \cite{raptis2023survey}. Cada partición se replica según un factor de replicación $RF$. Una réplica actúa como líder y atiende las lecturas y escrituras de esa partición; las demás son seguidoras que copian al líder y lo reemplazan si falla \cite{raptis2023survey}. Con $P$ particiones y $RF$ réplicas, el clúster aloja $P \times RF$ réplicas en total, repartidas entre los brokers.
+
+\subsection{Segmentos de log}
+
+En disco, cada partición no es un único archivo sino una secuencia de segmentos. Solo el segmento activo recibe escrituras; cuando alcanza un tamaño o una antigüedad configurados, se cierra y se abre uno nuevo \cite{kafkadocs}. La retención trabaja sobre segmentos completos: al vencer el plazo o superar el tamaño máximo, se eliminan segmentos enteros, lo que es mucho más barato que borrar mensajes individuales. Este diseño explica por qué Kafka puede retener días de datos sin degradar las escrituras: todas las operaciones de escritura son anexos secuenciales y las lecturas por offset se resuelven ubicando el segmento cuyo offset base es el inmediato inferior.
+
+\subsection{Grupos de consumidores}
+
+Los consumidores se organizan en grupos. Dentro de un grupo, cada partición se asigna a un único consumidor, lo que reparte la carga sin que dos miembros procesen el mismo mensaje \cite{raptis2023survey,kafkadocs}. De ahí sale un límite que conviene tener presente al dimensionar:
+\begin{equation}
+C_{\text{activos}} = \min(C, P),
+\end{equation}
+donde $C$ es el número de consumidores del grupo y $P$ el número de particiones. Un cuarto consumidor sobre un topic de tres particiones queda ocioso. Los offsets confirmados por cada grupo se guardan en un topic interno, \texttt{\_\_consumer\_offsets}, administrado por un coordinador de grupo \cite{kafkadocs}. La literatura revisada contiene aquí una imprecisión: Lu et al. afirman que KRaft registra el offset de cada mensaje y que el consumidor lo busca ahí \cite{lu2025proposal}. KRaft gestiona los metadatos del clúster (brokers, topics, particiones, líderes); los offsets de consumo viven en \texttt{\_\_consumer\_offsets} y la posición de cada registro es intrínseca al log de la partición \cite{kip500,kafkadocs}.
+
+\subsection{De ZooKeeper al consenso interno KRaft}
+
+Hasta la serie 3.x, Kafka dependía de ZooKeeper para almacenar los metadatos del clúster y coordinar la asignación de particiones y la recuperación ante fallos \cite{zhou2024distributed,calderon2024monitoring}. Uno de los brokers actuaba como controlador y, cada vez que se elegía uno nuevo, debía cargar el estado desde ZooKeeper antes de poder operar \cite{kip500}. Esto implicaba operar dos sistemas distribuidos distintos, con sus propios mecanismos de seguridad, monitoreo y fallo, y añadía tiempo a cada conmutación de controlador.
+
+KIP-500 propuso reemplazar ZooKeeper por un quórum de controladores que gestiona un log de metadatos replicado mediante Raft; el líder de ese log es el controlador activo \cite{kip500}. Raft descompone el consenso en elección de líder, replicación del log y seguridad, y usa temporizadores aleatorios para resolver las elecciones \cite{ongaro2014raft}. Como cualquier protocolo de mayoría, un quórum de $N$ votantes tolera
+\begin{equation}
+f = \left\lfloor \frac{N-1}{2} \right\rfloor
+\label{eq:quorum}
+\end{equation}
+fallos simultáneos. Con $N=3$ se tolera un fallo; con $N=5$, dos. La ventaja práctica es que los controladores seguidores ya tienen los metadatos replicados en memoria, por lo que la conmutación no exige recargar el estado desde un sistema externo \cite{kip500}. La versión 4.0 eliminó por completo el modo ZooKeeper \cite{kafka40release}. Lu et al. ya desplegaron su marco industrial con tres brokers gestionados por KRaft sobre Kafka 3.7.0 \cite{lu2025proposal}, mientras que Zhou et al. y Pacella et al. todavía trabajaron con ZooKeeper \cite{zhou2024distributed,pacella2025scalable}.
+
+\subsection{Diagrama de arquitectura}
+\label{sec:diagrama}
+
+La Figura~\ref{fig:arquitectura} resume la arquitectura analizada.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.92\textwidth]{evidencias/arquitectura_kafka.drawio.png}
+\caption{Arquitectura de Apache Kafka en modo KRaft: productores, quórum de controladores, brokers con particiones líder y seguidoras, y grupos de consumidores. Elaboración propia a partir del esquema del Anexo~A.}
+\label{fig:arquitectura}
+\end{figure}
+
+El diagrama parte del bosquejo dibujado a mano del Anexo~A. En esa primera versión ubiqué los componentes que reconocía en la lectura inicial: productores, un bloque de brokers y consumidores, con flechas de envío y lectura. Al contrastarlo con la documentación y con los artículos, el esquema resultó insuficiente en tres puntos. Primero, no distinguía el plano de control del plano de datos; en la versión limpia el quórum de controladores KRaft aparece separado del flujo de mensajes, porque su función es mantener metadatos y no transportar registros. Segundo, trataba al broker como unidad de almacenamiento, cuando la unidad real es la partición; por eso el diagrama final muestra particiones con su réplica líder y sus seguidoras repartidas entre nodos. Tercero, las flechas del bosquejo sugerían que el broker empuja mensajes al consumidor; el diagrama corregido invierte esa dirección para reflejar que el consumidor solicita lotes a partir de su offset \cite{raptis2023survey,kafkadocs}. Este último error es instructivo: el propio artículo de Raptis y Passarella menciona que Kafka admite consumo push y pull, aunque su ejemplo detallado describe un modelo pull \cite{raptis2023survey}; la documentación oficial justifica explícitamente el diseño pull \cite{kafkadocs}.
+
+\end{document}
