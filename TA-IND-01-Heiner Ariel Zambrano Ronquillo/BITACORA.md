@@ -8,7 +8,7 @@
 
 ## Sesión 1: Jueves, 12 de noviembre de 2026
 
-### 1. Actividades Realizadas y Cronología Exacta de la Sesión
+### 1. Actividades Realizadas y Cronología de la Sesión
 * **21:30 - 22:10 | Definición Temática y Análisis Arquitectónico:**
   * Elección formal de **MinIO** como sistema distribuido principal y **Apache HDFS** como sistema secundario comparativo.
   * Análisis preliminar de los componentes del sistema (cliente S3, nodo coordinador efímero, malla simétrica por RPC y almacenamiento de fragmentos de datos y paridad mediante Erasure Coding).
@@ -37,6 +37,9 @@
     `docker compose run --rm mc mb localminio/datos-distribuidos`
   * Creación exitosa del bucket `datos-distribuidos` en el clúster (`Bucket created successfully 'localminio/datos-distribuidos'.`), verificando la propagación coordinada de metadatos en el clúster distribuido.
   * Registro de la cuarta evidencia en `capturas/04_Creación del bucket distribuido.png` mostrando la confirmación y el prompt de identidad con hora exacta (`[Heiner@HP] [2026-11-12 23:34:49] (gh:Heiner-ZZZ)`).
+* **23:55 - 23:59 | Documentación y Estandarización de Identidad:**
+  * Redacción y subida de `README.md` estructurando la descripción general del proyecto, el árbol del repositorio y las instrucciones de compilación.
+  * Creación del script `experimento/preparar_prompt_captura.sh` para la estandarización del prompt en sesiones Bash.
 
 ### 2. Problemas Encontrados y Soluciones Aplicadas
 * **Duda conceptual sobre el modelo de comunicación interna:**
@@ -47,17 +50,28 @@
   * *Solución:* Se automatizó el servicio `init-permissions` con BusyBox para ejecutar `chown -R 65532:65532` y `chmod -R 775` antes del encendido de los nodos.
 
 ### 3. Tiempo Dedicado
-* **Duración Total:** 2 horas y 20 minutos (comprendidas entre las 21:30 y las 23:50, distribuidas entre el análisis, el despliegue del clúster, la elaboración del bosquejo físico y la toma de evidencias de terminal).
+* **Duración:** 2 horas y 30 minutos.
 
 ---
 
 ## Sesión 2: Viernes, 13 de noviembre de 2026
 
 ### 1. Actividades Realizadas
-* 
+* **00:10 - 00:13 | Versionado de la Infraestructura Distribuida (docker-compose.yml):**
+  * Integración formal y commit en el repositorio del archivo `experimento/docker-compose.yml`.
+  * Definición reproducible de los 4 nodos (`minio1` a `minio4`) en la red bridge `minio-distributed-net`, los mapeos de puertos (9000-9003 y consolas 9010-9013), volúmenes persistentes locales y servicio cliente `mc`.
+* **00:14 - 00:20 | Estructuración del Andamiaje Académico en LaTeX (informe/main.tex):**
+  * Versionado y commit del documento principal `informe/main.tex` con las 13 secciones obligatorias del informe.
+  * Configuración de la carátula formal, paquetes tipográficos, soporte de idioma español (`babel`), gestión de bibliografía con BibLaTeX (estilo IEEE / Biber) y apéndices.
+  * Vinculación en el **Anexo A** de la imagen digitalizada del bosquejo manual (`../figura/bosquejo_inicial_amano.jpeg`).
+  * Verificación sintáctica preliminar de compilación en formato PDF.
+* **00:21 - 00:25 | Consolidación y Sincronización de Evidencias en Git:**
+  * Sincronización de las entradas de `BITACORA.md` con los commits progresivos realizados entre la noche del 12 y la madrugada del 13 de noviembre.
 
 ### 2. Problemas Encontrados y Soluciones Aplicadas
-* 
+* **Vinculación de rutas relativas de figuras en LaTeX:**
+  * *Problema:* Al organizar el informe dentro del directorio `informe/`, la ruta hacia la imagen del Anexo A debía apuntar al directorio padre `../figura/bosquejo_inicial_amano.jpeg`.
+  * *Solución:* Se corrigió la ruta en `\includegraphics` de `informe/main.tex` y se confirmó que el documento compila incluyendo la imagen sin advertencias de archivo faltante.
 
 ### 3. Tiempo Dedicado
-* 
+* **Duración:** 45 minutos.
