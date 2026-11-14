@@ -105,17 +105,25 @@ TA-IND-01-Heiner Ariel Zambrano Ronquillo/
 
 ## 5. Guía Rápida de Compilación y Reproducción
 
-### 5.1 Compilación del Informe Académico (LaTeX)
+### 5.1 Compilar el Informe (LaTeX)
 
-Requiere `pdflatex` y `biber` (distribución TeX Live o MiKTeX). Genera el documento de 26 páginas [informe/main.pdf](informe/main.pdf):
+Requiere `pdflatex` y `biber` (distribución TeX Live o MiKTeX).
+
+- **Compilador y gestor bibliográfico:** `pdflatex` y `biber` (estilo IEEE con `biblatex`).
+- **Archivo principal:** `informe/main.tex`
+- **Dependencias principales:** `inputenc` (`utf8`), `fontenc` (`T1`), `babel` (`spanish`), `csquotes`, `amsmath`, `geometry`, `microtype`, `booktabs`, `tabularx`, `graphicx`, `float`, `caption`, `fancyhdr`, `enumitem`, `hyperref` y `biblatex`.
+
+Desde la carpeta `informe/`, ejecute la secuencia estándar de cuatro pasadas:
 
 ```bash
 cd informe
-pdflatex -interaction=nonstopmode main.tex
+pdflatex main
 biber main
-pdflatex -interaction=nonstopmode main.tex
-pdflatex -interaction=nonstopmode main.tex
+pdflatex main
+pdflatex main
 ```
+
+El resultado es `main.pdf`, de 26 páginas (disponible tanto en `informe/main.pdf` como en la raíz del repositorio como `main.pdf`). En Overleaf basta con subir `main.tex`, `referencias.bib` y las carpetas `figura/` y `capturas/`, y pulsar **Recompile**: Overleaf detecta y ejecuta Biber automáticamente.
 
 ---
 
