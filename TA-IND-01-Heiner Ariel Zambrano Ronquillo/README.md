@@ -31,10 +31,9 @@ Este trabajo presenta un análisis crítico y experimental de **MinIO en modo di
 
 ```text
 TA-IND-01-Heiner Ariel Zambrano Ronquillo/
-├── AGENTS.md                             # Protocolo de integridad académica y alcance técnico
 ├── BITACORA.md                           # Bitácora cronológica de sesiones, problemas y tiempos
-├── GUIA_DE_TAREA.txt                     # Directrices, rúbrica oficial y especificaciones de la tarea
 ├── README.md                             # Documentación global del repositorio y guía de reproducción
+├── main.pdf                              # Documento final compilado (26 páginas)
 ├── Referencias/                          # 7 artículos científicos indexados Open Access (PDFs)
 ├── capturas/                             # 13 evidencias de terminal y 5 lecturas críticas del Anexo B
 │   ├── 01_despligue_de_nodos.png … 13_Recuperacion_healing_nodo1.png
