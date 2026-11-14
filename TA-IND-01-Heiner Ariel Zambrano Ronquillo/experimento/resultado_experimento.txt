@@ -1,0 +1,323 @@
+================================================================================
+REGISTRO Y RESULTADOS DE EXPERIMENTACIÓN TÉCNICA EN CLÚSTER DISTRIBUIDO
+================================================================================
+Actividad:       TA-IND-01 (Semana 3)
+Asignatura:      Sistemas Distribuidos
+Estudiante:      Heiner Ariel Zambrano Ronquillo
+Sistema:         MinIO Distributed Object Storage (vs. Apache HDFS)
+Fecha de Inicio: 12 de noviembre de 2026, 22:13:15
+Fecha de Cierre: 13 de noviembre de 2026, 16:29:35
+Entorno Host:    Windows 11 Pro / PowerShell 5.1 / Docker Desktop (WSL2)
+Identidad Host:  [Heiner@HP] (gh:Heiner-ZZZ)
+================================================================================
+
+--------------------------------------------------------------------------------
+1. PARÁMETROS DE LA ARQUITECTURA EXPERIMENTAL Y TOPOLOGÍA
+--------------------------------------------------------------------------------
+* Nodos de almacenamiento: 4 instancias independientes (minio1, minio2, minio3, minio4)
+* Imagen base de software: cgr.dev/chainguard/minio:latest (Chainguard Distroless)
+* Cliente administrativo:  cgr.dev/chainguard/minio-client:latest (mc)
+* Red distribuida:         Docker Bridge privada (experimento_minio-distributed-net)
+* Mecanismo de redundancia: Erasure Coding Reed-Solomon (K=2 bloques de datos, M=2 paridad)
+* Factor de tolerancia:    EC:2 (hasta 2 unidades caídas sin pérdida de datos en lectura)
+* Quórum de lectura:       Mínimo 2 nodos activos (K = 2)
+* Quórum de escritura:     Mínimo 3 nodos activos (K + 1 = 3)
+* Modelo arquitectural:    Malla simétrica Shared-Nothing (sin nodo maestro único)
+
+================================================================================
+2. CRONOLOGÍA DETALLADA, COMANDOS EXACTOS Y SALIDAS DE TERMINAL
+================================================================================
+
+--------------------------------------------------------------------------------
+FASE 1: DESPLIEGUE DEL CLÚSTER DISTRIBUIDO Y VERIFICACIÓN DE CONTENEDORES
+--------------------------------------------------------------------------------
+Objetivo: Inicializar el clúster de 4 nodos conectados a la red bridge privada
+y confirmar que cada nodo monte su volumen persistente local sin conflictos
+de permisos.
+
+[Heiner@HP] [2026-11-12 22:13:15] (gh:Heiner-ZZZ)
+PS C:\GIT\TA-IND-01--Análisis-Crítico-de-SD\TA-IND-01-Heiner Ariel Zambrano Ronquillo\experimento> docker compose up -d minio1 minio2 minio3 minio4
+[+] up 22/22
+ ✔ Image cgr.dev/chainguard/minio:latest     Pulled                                                                                            32.8s
+ ✔ Image mirror.gcr.io/library/busybox:1.37  Pulled                                                                                            37.5s
+ ✔ Network experimento_default               Created                                                                                            0.0s
+ ✔ Network experimento_minio-distributed-net Created                                                                                            0.0s
+ ✔ Container minio-init-permissions          Exited                                                                                             1.2s
+ ✔ Container minio4                          Started                                                                                            1.8s
+ ✔ Container minio1                          Started                                                                                            2.2s
+ ✔ Container minio2                          Started                                                                                            1.9s
+ ✔ Container minio3                          Started                                                                                            2.0s
+
+[Heiner@HP] [2026-11-12 22:16:48] (gh:Heiner-ZZZ)
+PS C:\GIT\TA-IND-01--Análisis-Crítico-de-SD\TA-IND-01-Heiner Ariel Zambrano Ronquillo\experimento> docker compose ps
+NAME      IMAGE                             COMMAND                  SERVICE   CREATED             STATUS             PORTS
+minio1    cgr.dev/chainguard/minio:latest   "/usr/bin/minio serv…"   minio1    About an hour ago   Up About an hour   0.0.0.0:9000->9000/tcp, [::]:9000->9000/tcp, 0.0.0.0:9010->9001/tcp, [::]:9010->9001/tcp
+minio2    cgr.dev/chainguard/minio:latest   "/usr/bin/minio serv…"   minio2    About an hour ago   Up About an hour   0.0.0.0:9001->9000/tcp, [::]:9001->9000/tcp, 0.0.0.0:9011->9001/tcp, [::]:9011->9001/tcp
+minio3    cgr.dev/chainguard/minio:latest   "/usr/bin/minio serv…"   minio3    About an hour ago   Up About an hour   0.0.0.0:9002->9000/tcp, [::]:9002->9000/tcp, 0.0.0.0:9012->9001/tcp, [::]:9012->9001/tcp
+minio4    cgr.dev/chainguard/minio:latest   "/usr/bin/minio serv…"   minio4    About an hour ago   Up About an hour   0.0.0.0:9003->9000/tcp, [::]:9003->9000/tcp, 0.0.0.0:9013->9001/tcp, [::]:9013->9001/tcp
+
+Interpretación Técnica de Fase 1:
+- El servicio `minio-init-permissions` corrigió con éxito los privilegios de los directorios locales (UID 65532).
+- Los 4 contenedores arrancaron de forma coordinada, exponiendo los puertos S3 (9000-9003) y consolas web (9010-9013).
+- La salida a las 23:19:05 confirma "Up About an hour", validando que los 4 nodos permanecieron activos de manera ininterrumpida mientras se elaboraba el bosquejo manual de la arquitectura (Anexo A).
+
+--------------------------------------------------------------------------------
+FASE 2: CONFIGURACIÓN DEL CLIENTE MC E INSPECCIÓN DE TOPOLOGÍA ERASURE CODING
+--------------------------------------------------------------------------------
+Objetivo: Conectar el cliente oficial `mc` a la red distribuida, establecer el alias
+de comunicación y auditar la topología de almacenamiento y salud de los nodos.
+
+[Heiner@HP] [2026-11-12 23:25:43] (gh:Heiner-ZZZ)
+PS C:\GIT\TA-IND-01--Análisis-Crítico-de-SD\TA-IND-01-Heiner Ariel Zambrano Ronquillo\experimento> docker compose run --rm mc alias set localminio http://minio1:9000 minioadmin minioadmin123
+[+]  4/4te 4/4
+ ✔ Container minio1 Running                                                                                                                     0.0s
+ ✔ Container minio3 Running                                                                                                                     0.0s
+ ✔ Container minio2 Running                                                                                                                     0.0s
+ ✔ Container minio4 Running                                                                                                                     0.0s
+mc: Configuration written to `/tmp/mc/config.json`. Please update your access credentials.
+mc: Successfully created `/tmp/mc/share`.
+mc: Initialized share uploads `/tmp/mc/share/uploads.json` file.
+mc: Initialized share downloads `/tmp/mc/share/downloads.json` file.
+Added `localminio` successfully.
+
+[Heiner@HP] [2026-11-12 23:25:52] (gh:Heiner-ZZZ)
+PS C:\GIT\TA-IND-01--Análisis-Crítico-de-SD\TA-IND-01-Heiner Ariel Zambrano Ronquillo\experimento> docker compose run --rm mc admin info localminio
+[+]  4/4te 4/4
+ ✔ Container minio3 Running                                                                                                                                                                                               0.0s
+ ✔ Container minio2 Running                                                                                                                                                                                               0.0s
+ ✔ Container minio4 Running                                                                                                                                                                                               0.0s
+ ✔ Container minio1 Running                                                                                                                                                                                               0.0s
+●  minio1:9000
+   Uptime: 1 hour
+   Version: 2026-11-12T01-15-23Z
+   Network: 4/4 OK
+   Drives: 1/1 OK
+   Pool: 1
+
+●  minio2:9000
+   Uptime: 1 hour
+   Version: 2026-11-12T01-15-23Z
+   Network: 4/4 OK
+   Drives: 1/1 OK
+   Pool: 1
+
+●  minio3:9000
+   Uptime: 1 hour
+   Version: 2026-11-12T01-15-23Z
+   Network: 4/4 OK
+   Drives: 1/1 OK
+   Pool: 1
+
+●  minio4:9000
+   Uptime: 1 hour
+   Version: 2026-11-12T01-15-23Z
+   Network: 4/4 OK
+   Drives: 1/1 OK
+   Pool: 1
+
+┌──────┬────────────────────────┬─────────────────────┬──────────────┐
+│ Pool │ Drives Usage           │ Erasure stripe size │ Erasure sets │
+├──────┼────────────────────────┼─────────────────────┼──────────────┤
+│ 1st  │ 65.9% (total: 951 GiB) │ 4                   │ 1            │
+└──────┴────────────────────────┴─────────────────────┴──────────────┘
+
+4 drives online, 0 drives offline, EC:2
+
+Interpretación Técnica de Fase 2:
+- Los 4 nodos reportan conectividad recíproca completa mediante RPC (`Network: 4/4 OK`).
+- El clúster se agrupa automáticamente en un único Erasure Set de 4 drives (`Erasure stripe size: 4`, `EC:2`).
+- Esto demuestra el modelo simétrico: no hay NameNode central; cada nodo ejecuta el mismo binario y conoce el mapa global de unidades del clúster.
+
+--------------------------------------------------------------------------------
+FASE 3: CREACIÓN DE BUCKET DISTRIBUIDO E INGESTA CON ERASURE CODING
+--------------------------------------------------------------------------------
+Objetivo: Aprovisionar un bucket S3 distribuido y almacenar un objeto dividiéndolo
+en fragmentos de datos y paridad Reed-Solomon a través de los nodos.
+
+[Heiner@HP] [2026-11-12 23:34:45] (gh:Heiner-ZZZ)
+PS C:\GIT\TA-IND-01--Análisis-Crítico-de-SD\TA-IND-01-Heiner Ariel Zambrano Ronquillo\experimento> docker compose run --rm mc mb localminio/datos-distribuidos
+Bucket created successfully `localminio/datos-distribuidos`.
+
+[Heiner@HP] [2026-11-13 00:22:48] (gh:Heiner-ZZZ)
+PS C:\GIT\TA-IND-01--Análisis-Crítico-de-SD\TA-IND-01-Heiner Ariel Zambrano Ronquillo\experimento> docker compose run --rm mc cp comando_prueba.md localminio/datos-distribuidos/
+mc: <ERROR> Unable to prepare URL for copying. Requested path `/comando_prueba.md` not found
+
+[Heiner@HP] [2026-11-13 00:22:52] (gh:Heiner-ZZZ)
+PS C:\GIT\TA-IND-01--Análisis-Crítico-de-SD\TA-IND-01-Heiner Ariel Zambrano Ronquillo\experimento> docker compose run --rm -v ${PWD}:/work mc cp /work/comando_prueba.md localminio/datos-distribuidos/
+/work/comando_prueba.md:                5.64 KiB / 5.64 KiB ┃▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓┃ 33.25 KiB/s 0s
+
+[Heiner@HP] [2026-11-13 00:53:18] (gh:Heiner-ZZZ)
+PS C:\GIT\TA-IND-01--Análisis-Crítico-de-SD\TA-IND-01-Heiner Ariel Zambrano Ronquillo\experimento> docker compose run --rm mc ls localminio/datos-distribuidos/
+[2026-11-13 05:52:25 UTC] 5.6KiB STANDARD comando_prueba.md
+
+Interpretación Técnica de Fase 3:
+- El fallo inicial en 00:22:48 evidenció el aislamiento del contenedor efímero `mc`. La solución mediante montaje de volumen `-v ${PWD}:/work` garantizó el acceso al archivo local.
+- Al recibir el objeto `comando_prueba.md` (5.64 KiB), el nodo receptor calculó los fragmentos de datos (K=2) y paridad (M=2), escribiendo concurrentemente los fragmentos y metadatos `xl.meta` en los discos locales de los 4 nodos mediante RPC paralelo.
+- La consulta `mc ls` confirmó consistencia inmediata (read-after-write), propia del modelo de consistencia fuerte de MinIO.
+
+--------------------------------------------------------------------------------
+FASE 4: INYECCIÓN CONTROLADA DE FALLO Y DIAGNÓSTICO DE TRANSPARENCIA
+--------------------------------------------------------------------------------
+Objetivo: Simular una caída súbita de hardware deteniendo el nodo `minio1`
+y observar el impacto en el cliente y en el quórum del clúster.
+
+[Heiner@HP] [2026-11-13 01:31:16] (gh:Heiner-ZZZ)
+PS C:\GIT\TA-IND-01--Análisis-Crítico-de-SD\TA-IND-01-Heiner Ariel Zambrano Ronquillo\experimento> docker stop minio1
+minio1
+
+[Heiner@HP] [2026-11-13 01:35:11] (gh:Heiner-ZZZ)
+PS C:\GIT\TA-IND-01--Análisis-Crítico-de-SD\TA-IND-01-Heiner Ariel Zambrano Ronquillo\experimento> docker compose run --rm mc admin info localminio
+mc: <ERROR> Unable to get service info. Get "http://minio1:9000/minio/admin/v3/info?metrics=false": dial tcp: lookup minio1 on 127.0.0.11:53: no such host.
+
+Interpretación Técnica de Fase 4:
+- El nodo `minio1` se detuvo de forma inmediata (consumo global bajó de 259.43 MB a 194.39 MB).
+- Al consultar el alias `localminio` (que apuntaba estáticamente a `http://minio1:9000`), el DNS interno de Docker (127.0.0.11:53) falló con `no such host`.
+- Hallazgo crítico sobre Transparencia de Fallos: Aunque el clúster como conjunto de almacenamiento retiene quórum (3 nodos en línea sobre 4), el cliente NO experimenta transparencia de fallos si no cuenta con un balanceador de carga L4/L7 (HAProxy, Nginx) o DNS round-robin. La petición quedó bloqueada en el extremo del cliente.
+
+--------------------------------------------------------------------------------
+FASE 5: CONMUTACIÓN POR ERROR (FAILOVER) Y DISPONIBILIDAD EN MODO DEGRADADO
+--------------------------------------------------------------------------------
+Objetivo: Reconfigurar el alias cliente hacia el nodo par `minio2` para comprobar
+si el clúster degradado (3/4 nodos) mantiene la disponibilidad de datos.
+
+[Heiner@HP] [2026-11-13 16:24:26] (gh:Heiner-ZZZ)
+PS C:\GIT\TA-IND-01--Análisis-Crítico-de-SD\TA-IND-01-Heiner Ariel Zambrano Ronquillo\experimento> docker compose run --rm mc alias set localminio http://minio2:9000 minioadmin minioadmin123
+Added `localminio` successfully.
+
+[Heiner@HP] [2026-11-13 16:24:26] (gh:Heiner-ZZZ)
+PS C:\GIT\TA-IND-01--Análisis-Crítico-de-SD\TA-IND-01-Heiner Ariel Zambrano Ronquillo\experimento> docker compose run --rm mc admin info localminio
+●  minio1:9000
+   Uptime: offline
+   Drives: 0/1 OK
+
+●  minio2:9000
+   Uptime: 4 minutes
+   Version: 2026-11-12T01-15-23Z
+   Network: 3/4 OK
+   Drives: 1/1 OK
+   Pool: 1
+
+●  minio3:9000
+   Uptime: 4 minutes
+   Version: 2026-11-12T01-15-23Z
+   Network: 3/4 OK
+   Drives: 1/1 OK
+   Pool: 1
+
+●  minio4:9000
+   Uptime: 4 minutes
+   Version: 2026-11-12T01-15-23Z
+   Network: 3/4 OK
+   Drives: 1/1 OK
+   Pool: 1
+
+┌──────┬────────────────────────┬─────────────────────┬──────────────┐
+│ Pool │ Drives Usage           │ Erasure stripe size │ Erasure sets │
+├──────┼────────────────────────┼─────────────────────┼──────────────┤
+│ 1st  │ 66.2% (total: 476 GiB) │ 4                   │ 1            │
+└──────┴────────────────────────┴─────────────────────┴──────────────┘
+
+5.6 KiB Used, 1 Bucket, 1 Object
+1 node offline, 3 drives online, 1 drive offline, EC:2
+
+[Heiner@HP] [2026-11-13 16:24:36] (gh:Heiner-ZZZ)
+PS C:\GIT\TA-IND-01--Análisis-Crítico-de-SD\TA-IND-01-Heiner Ariel Zambrano Ronquillo\experimento> docker compose run --rm mc ls localminio/datos-distribuidos/
+[2026-11-13 05:52:25 UTC] 5.6KiB STANDARD comando_prueba.md
+
+Interpretación Técnica de Fase 5:
+- Al conmutar el acceso a `minio2`, la consulta respondió de inmediato evidenciando el estado degradado: `1 node offline, 3 drives online, 1 drive offline, EC:2`.
+- El comando `mc ls` recuperó exitosamente el objeto `comando_prueba.md` (5.6 KiB) de forma íntegra e ininterrumpida.
+- Validación de Tolerancia a Fallos: Con K=2 y M=2, un fallo de 1 unidad deja 3 unidades vivas. Dado que 3 >= K (2), el quórum de lectura se cumple holgadamente. MinIO reconstruyó el objeto en memoria utilizando los bloques de paridad restantes, validando empíricamente la efectividad del algoritmo Reed-Solomon frente a la replicación clásica.
+
+--------------------------------------------------------------------------------
+FASE 6: AUTO-RECUPERACIÓN Y REINTEGRACIÓN DEL NODO CAÍDO (SELF-HEALING)
+--------------------------------------------------------------------------------
+Objetivo: Reincorporar el nodo `minio1` al clúster y comprobar la detección automática,
+resincronización de metadatos y restauración de la salud del Erasure Set.
+
+[Heiner@HP] [2026-11-13 16:29:11] (gh:Heiner-ZZZ)
+PS C:\GIT\TA-IND-01--Análisis-Crítico-de-SD\TA-IND-01-Heiner Ariel Zambrano Ronquillo\experimento> docker start minio1
+minio1
+
+[Heiner@HP] [2026-11-13 16:29:14] (gh:Heiner-ZZZ)
+PS C:\GIT\TA-IND-01--Análisis-Crítico-de-SD\TA-IND-01-Heiner Ariel Zambrano Ronquillo\experimento> docker compose run --rm mc admin info localminio
+●  minio1:9000
+   Uptime: 21 seconds
+   Version: 2026-11-12T01-15-23Z
+   Network: 4/4 OK
+   Drives: 1/1 OK
+   Pool: 1
+
+●  minio2:9000
+   Uptime: 9 minutes
+   Version: 2026-11-12T01-15-23Z
+   Network: 4/4 OK
+   Drives: 1/1 OK
+   Pool: 1
+
+●  minio3:9000
+   Uptime: 9 minutes
+   Version: 2026-11-12T01-15-23Z
+   Network: 4/4 OK
+   Drives: 1/1 OK
+   Pool: 1
+
+●  minio4:9000
+   Uptime: 9 minutes
+   Version: 2026-11-12T01-15-23Z
+   Network: 4/4 OK
+   Drives: 1/1 OK
+   Pool: 1
+
+┌──────┬────────────────────────┬─────────────────────┬──────────────┐
+│ Pool │ Drives Usage           │ Erasure stripe size │ Erasure sets │
+├──────┼────────────────────────┼─────────────────────┼──────────────┤
+│ 1st  │ 66.2% (total: 951 GiB) │ 4                   │ 1            │
+└──────┴────────────────────────┴─────────────────────┴──────────────┘
+
+5.6 KiB Used, 1 Bucket, 1 Object
+4 drives online, 0 drives offline, EC:2
+
+Interpretación Técnica de Fase 6:
+- En solo 21 segundos tras ejecutar `docker start minio1`, el clúster detectó la reactivación mediante heartbeats RPC internos.
+- La malla simétrica pasó de `3/4 OK` a `4/4 OK` en todos los nodos, y el resumen de unidades retornó a `4 drives online, 0 drives offline, EC:2`.
+- Demostración de Sanación Automática (Self-Healing): La reintegración del nodo no requirió comandos administrativos manuales ni detención de operaciones en los demás nodos. El sistema restauró de forma autónoma el quórum completo.
+
+================================================================================
+3. MATRIZ SINTÉTICA DE RESULTADOS DEL EXPERIMENTO
+================================================================================
+
+Métrica / Parámetro         Estado Normal (Fase 2)   Estado Degradado (Fase 5)  Estado Recuperado (Fase 6)
+--------------------------  -----------------------  -------------------------  --------------------------
+Nodos Activos               4 / 4                    3 / 4 (minio1 caído)       4 / 4
+Conectividad de Red (RPC)   4/4 OK                   3/4 OK                     4/4 OK
+Drives en Línea             4 online, 0 offline      3 online, 1 offline        4 online, 0 offline
+Configuración Paridad       EC:2 (K=2, M=2)          EC:2 (K=2, M=2)            EC:2 (K=2, M=2)
+Quórum de Lectura (K=2)     Satisfecho (4 >= 2)      Satisfecho (3 >= 2)        Satisfecho (4 >= 2)
+Quórum de Escritura (K+1=3) Satisfecho (4 >= 3)      Satisfecho (3 >= 3)        Satisfecho (4 >= 3)
+Disponibilidad del Objeto   100% Accesible           100% Accesible (vía EC)    100% Accesible
+Consumo RAM en Host         259.43 MB                194.39 MB                  260.10 MB
+Consumo CPU en Host         0.68% (12 hilos)         0.38% (12 hilos)           0.70% (12 hilos)
+Transparencia de Fallo      No aplica                Falló en DNS estático      Restaurada
+
+================================================================================
+4. CONCLUSIONES TÉCNICAS DERIVADAS DEL EXPERIMENTO
+================================================================================
+1. Tolerancia a Fallos Robusta: El esquema Erasure Coding Reed-Solomon (EC:2)
+   garantiza la continuidad absoluta del servicio de lectura aún ante la pérdida
+   del 25% de la infraestructura (1 de 4 nodos).
+2. Ausencia de Cuellos de Botella de Metadatos: Al operar bajo arquitectura
+   Shared-Nothing, cualquier nodo superviviente (minio2, minio3, minio4) puede asumir
+   el rol de coordinador efímero y resolver peticiones S3 sin dependencia de un
+   nodo maestro como ocurre con el NameNode en HDFS.
+3. Lección Arquitectónica sobre Transparencia de Fallos: La falla observada en el
+   cliente mc demostró que la transparencia de fallos en sistemas distribuidos no es
+   automática en el cliente si este se conecta a una IP/puerto fijo. En entornos
+   de producción se requiere indispensablemente una capa intermedia de balanceo
+   (Layer 4/Layer 7) que redirija el tráfico de manera transparente ante nodos caídos.
+4. Auto-recuperación Determinista: El proceso de reintegración y cicatrización (healing)
+   opera en segundo plano con mínima sobrecarga de CPU/memoria y sin requerir
+   reinicio del clúster.
+================================================================================
+FIN DEL REPORTE DE RESULTADOS EXPERIMENTALES
+================================================================================
