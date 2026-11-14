@@ -329,4 +329,147 @@ WhatsApp, ante la partición de red que supone quedarse sin cobertura, elige dis
 
 En la transferencia interbancaria el compromiso es el opuesto en lo que importa. El sistema puede aceptar la orden de inmediato (disponibilidad para registrar la intención), pero no refleja el dinero en la cuenta destino hasta tener la confirmación de la otra institución. Prefiere mostrar \enquote{en proceso} antes que un saldo que luego tendría que revertirse. Es un comportamiento PC/EC similar al de Kafka con \texttt{acks=all}: se paga latencia visible para no exponer un estado que podría no ser definitivo. La diferencia entre ambos casos no es tecnológica sino de costo del error: un mensaje duplicado o tardío es una molestia; un saldo incorrecto es un problema contable.
 
+% =====================================================================
+% 8. ANALISIS COMPARATIVO
+% =====================================================================
+\section{Análisis comparativo: Apache Kafka vs.\ RabbitMQ}
+\label{sec:comparativa}
+
+La Tabla~\ref{tab:comparativa} compara ambos sistemas en seis criterios de la Unidad~1.
+
+\begin{table}[H]
+\centering
+\small
+\caption{Comparación entre Apache Kafka (modo KRaft) y RabbitMQ (serie 4.x).}
+\label{tab:comparativa}
+\renewcommand{\arraystretch}{1.25}
+\begin{tabular}{>{\raggedright\arraybackslash}p{2.9cm} >{\raggedright\arraybackslash}p{5.9cm} >{\raggedright\arraybackslash}p{5.9cm}}
+\toprule
+\textbf{Criterio} & \textbf{Apache Kafka} & \textbf{RabbitMQ} \\
+\midrule
+Arquitectura y enrutamiento & Log particionado y replicado; el productor elige la partición por clave; sin enrutamiento por contenido en el broker \cite{raptis2023survey,kafkadocs}. & Broker AMQP: los mensajes llegan a \emph{exchanges} (direct, fanout, topic, headers) que los enrutan a colas mediante \emph{bindings} \cite{rabbitmqamqp}. \\
+\addlinespace
+Modelo de consumo & Pull: el consumidor solicita lotes desde su offset y controla su ritmo \cite{raptis2023survey,kafkadocs}. & Push predominante: el broker entrega a consumidores suscritos, regulado por \emph{prefetch}; también admite consulta bajo demanda \cite{rabbitmqamqp,pacella2025scalable}. \\
+\addlinespace
+Persistencia y retención & Retención por tiempo o tamaño, independiente del consumo; relectura desde cualquier offset \cite{kafkadocs}. & El mensaje se elimina de la cola tras la confirmación del consumidor; las \emph{streams} ofrecen retención tipo log \cite{rabbitmqquorum}. \\
+\addlinespace
+CAP / PACELC & Configurable por topic; con \texttt{acks=all}, $m=2$ y elección no limpia deshabilitada: PC/EC \cite{kafkadocs,abadi2012consistency}. & Las colas de quórum usan Raft: confirman con mayoría y no progresan en minoría (PC/EC) \cite{rabbitmqquorum}. \\
+\addlinespace
+Escalabilidad y rendimiento & Escala por particiones; mayor rendimiento del productor en las pruebas revisadas \cite{pacella2025scalable,maharjan2023benchmarking}. & Mayor rendimiento del consumidor en las pruebas de Pacella et al.; escalar una cola individual es más limitado \cite{pacella2025scalable}. \\
+\addlinespace
+Tolerancia a fallos y replicación & ISR dinámico con reelección automática de líder; plano de control en quórum KRaft \cite{zhou2024distributed,kip500}. & Colas de quórum y streams replicadas; la réplica clásica (\emph{mirroring}) se eliminó en la serie 4.0 \cite{rabbitmqquorum}. \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Discusión crítica.}
+Los datos empíricos disponibles no sostienen una superioridad general de Kafka, aunque así lo afirmen algunos autores. Pacella et al. midieron ambos sistemas con 100, 1000 y 10\,000 mensajes. El productor de Kafka fue ligeramente más rápido (714,21 frente a 671,55 mensajes/s con 1000 mensajes), pero el consumidor de RabbitMQ superó al de Kafka en todas las cargas (por ejemplo, 2169,57 frente a 1895,80 mensajes/s con 10\,000 mensajes) \cite{pacella2025scalable}. Aun así, la discusión del mismo artículo atribuye a Kafka capacidades superiores de alta tasa y baja latencia. La lectura que permiten sus propios datos es más acotada: Kafka destaca cuando importa el orden y la durabilidad; RabbitMQ entrega más rápido al consumidor cuando no se exige orden estricto, como reconocen los autores en otra parte del texto \cite{pacella2025scalable}. Además, las cargas probadas (hasta 10\,000 mensajes) son pequeñas para un sistema diseñado para flujos continuos.
+
+Maharjan et al. compararon Redis, ActiveMQ Artemis, RabbitMQ y Kafka y concluyeron que Kafka ofrece el mayor rendimiento con un margen significativo \cite{maharjan2023benchmarking}. Sus experimentos, sin embargo, se ejecutaron en una sola máquina con un productor y un consumidor y no consideraron la persistencia, que es precisamente el factor que diferencia a los dos sistemas en durabilidad. Zhou et al., comparando Kafka con ActiveMQ, reportaron retardos medios de Kafka entre 15,6 y 336,1~ms frente a 48,9 y 4374,5~ms de ActiveMQ al crecer el número de dispositivos, pero también reconocieron que ActiveMQ fue más estable gracias a su mecanismo de limitación de calidad de servicio \cite{zhou2024distributed}.
+
+El argumento clásico de que Kafka es \enquote{consistente} y RabbitMQ \enquote{no} quedó desactualizado. Desde que RabbitMQ eliminó la réplica clásica y adoptó colas de quórum basadas en Raft como opción replicada por defecto \cite{rabbitmqquorum}, ambos sistemas resuelven la replicación con quórum. La diferencia de fondo hoy no está en CAP sino en el modelo de datos: Kafka es un log que se relee; RabbitMQ es un enrutador de mensajes que se consumen. Elegir entre ambos depende de si el problema exige reprocesamiento y paralelismo por partición, o enrutamiento flexible y entrega por mensaje.
+
+% =====================================================================
+% 9. POSTURA CRITICA
+% =====================================================================
+\section{Postura crítica}
+
+\paragraph{Fortalezas reales.}
+Kafka combina tres propiedades que pocos sistemas ofrecen juntas: retención independiente del consumo, paralelismo explícito por partición y garantías de durabilidad configurables. La primera permite agregar consumidores nuevos que procesen la historia completa sin tocar al productor. La segunda convierte el escalamiento en una decisión de diseño medible ($C_{\text{activos}} = \min(C,P)$). La tercera permite ajustar cada topic a su costo de error. Los artículos revisados muestran además resultados sólidos en entornos industriales: Lu et al. reportan que el 99,9\,\% de los envíos se completó en menos de 1~s, un rendimiento medio de 51,96~MB/s y un recorrido completo desde la captura hasta el almacenamiento en menos de 7~ms en su banco de pruebas \cite{lu2025proposal}.
+
+\paragraph{Limitaciones operativas.}
+La flexibilidad tiene un precio: la configuración por defecto no es necesariamente la segura para cada caso, y los parámetros interactúan entre sí. Elegir el número de particiones es una decisión difícil de revertir, porque cambiarla altera la asignación de claves a particiones y rompe el orden por clave. La operación exige monitoreo continuo: Calderon et al. tuvieron que construir un marco completo con agentes Beats y Kibana para observar el lag, la memoria y la CPU de su plataforma \cite{calderon2024monitoring}. El incidente de PagerDuty muestra que la memoria de la JVM y el número de clientes son variables de riesgo que no aparecen en la descripción conceptual del sistema \cite{pagerduty2025}. Por último, gran parte de la literatura evalúa Kafka en máquinas virtuales o laboratorios: Lu et al. reconocen que su banco de pruebas no refleja la congestión ni la heterogeneidad de un despliegue industrial real \cite{lu2025proposal}.
+
+\paragraph{Compromisos de diseño.}
+Kafka cambia simplicidad del broker por complejidad del cliente: el broker no rastrea qué mensaje leyó cada consumidor, y por eso escala, pero la gestión de offsets, reintentos y duplicados recae en la aplicación. Cambia también latencia por consistencia, como formaliza PACELC \cite{abadi2012consistency}, y orden global por paralelismo, porque solo hay orden dentro de cada partición.
+
+\paragraph{Escenarios donde no se debe usar Kafka.}
+\begin{itemize}
+\item \textbf{Sistemas de bajo volumen.} Un servicio que procesa unos pocos mensajes por segundo no justifica operar un quórum de controladores, varios brokers y su monitoreo. Una cola simple o incluso una tabla en la base de datos resuelven el problema con menos piezas que pueden fallar.
+\item \textbf{Enrutamiento complejo por contenido o cabeceras.} Si los mensajes deben distribuirse según patrones de clave o atributos de cabecera, los \emph{exchanges} topic y headers de RabbitMQ lo resuelven en el broker \cite{rabbitmqamqp}. En Kafka habría que crear topics adicionales o filtrar en cada consumidor.
+\item \textbf{Latencia sub-milisegundo y determinista sin persistencia.} Kafka añade, como mínimo, un viaje de red hasta el líder, el anexo al log y, con \texttt{acks=all}, la replicación. Los retardos medidos por Zhou et al. están en el orden de decenas a cientos de milisegundos \cite{zhou2024distributed}. Las aplicaciones que necesitan latencia determinista, como el control industrial coordinado, requieren mecanismos en la capa de red como Time-Sensitive Networking, donde la planificación de paquetes garantiza tiempos de envío acotados \cite{lv2023making}. El propio trabajo de Lu et al. reconoce que el desempeño de su esquema en escenarios de muy baja latencia no fue verificado \cite{lu2025proposal}.
+\item \textbf{Colas de trabajo con confirmación y reintento por mensaje.} Cuando cada tarea debe confirmarse, reintentarse o descartarse individualmente, el modelo de offset por partición es incómodo, porque un mensaje problemático bloquea a los siguientes. Kafka 4.0 introdujo en acceso temprano un modelo de colas para este caso \cite{kafka40release}, lo que confirma que era una carencia del diseño original.
+\end{itemize}
+
+% =====================================================================
+% 10. CONCLUSIONES
+% =====================================================================
+\section{Conclusiones}
+
+\begin{enumerate}
+\item \textbf{La posición de Kafka en CAP/PACELC es una decisión de configuración, no una propiedad del sistema.} Con $RF=3$, \texttt{acks=all}, \texttt{min.insync.replicas=2} y elección no limpia deshabilitada, Kafka se comporta como PC/EC: rechaza escrituras cuando $|ISR| < m$ y paga en operación normal la latencia de la réplica más lenta del ISR. Basta cambiar $m$ a 1 o habilitar la elección no limpia para desplazarlo hacia AP con riesgo de pérdida de datos confirmados.
+
+\item \textbf{KRaft simplifica el plano de control sin cambiar el modelo de replicación de datos.} El clúster experimental de tres nodos conserva el quórum con un nodo caído ($f=1$), y las particiones con $RF=3$ y $m=2$ siguen aceptando escrituras. El plano de control usa mayoría estricta (Raft); el plano de datos usa un ISR dinámico. Confundir ambos mecanismos, como hace uno de los artículos revisados al atribuir a KRaft el registro de offsets, lleva a diagnósticos errados.
+
+\item \textbf{La transparencia de fallos de Kafka termina en el cliente.} Al detener \texttt{kafka-1}, el clúster reeligió en segundos al nodo 2 como líder de la partición 0 y mantuvo \texttt{Isr: 2,3}, pero el cliente que tenía a \texttt{kafka-1} como único servidor de arranque falló sin llegar a contactar al clúster. El resultado indica que la configuración del cliente (lista de arranque, tiempos de espera, reintentos, idempotencia) forma parte del diseño de tolerancia a fallos y no puede tratarse como un detalle de implementación.
+
+\item \textbf{La replicación protege contra fallos independientes, no contra fallos correlacionados.} Tanto el incidente de PagerDuty como las limitaciones de mi propio despliegue, con tres nodos en un mismo host y heap de 384~MB, muestran que la redundancia pierde valor cuando todas las réplicas comparten la causa del fallo. Frente a RabbitMQ, que hoy también replica con Raft, la ventaja de Kafka no está en la consistencia sino en su modelo de log retenido y particionado; cuando el problema no requiere reprocesamiento ni paralelismo por partición, esa ventaja no compensa su costo operativo.
+\end{enumerate}
+
+% =====================================================================
+% 11. DECLARACION DE USO DE IA
+% =====================================================================
+\section{Declaración de uso de inteligencia artificial}
+
+En la elaboración de este informe utilicé dos asistentes de inteligencia artificial: Claude (Anthropic) y Gemini (Google). Los usé para estructurar el código LaTeX del documento, validar la sintaxis del archivo Docker Compose y depurar comandos del clúster. Claude también generó el borrador de la redacción de las secciones del informe y apoyó la búsqueda de fuentes complementarias y la extracción de metadatos bibliográficos; revisé ese borrador, contrasté sus afirmaciones con los artículos citados y lo ajusté a mi experiencia y resultados.
+
+Realicé personalmente, sin asistencia de IA, el diseño del experimento, la ejecución del clúster de tres nodos y la captura de evidencias, el esquema de arquitectura dibujado a mano (Anexo~A), la lectura y el subrayado de los artículos científicos (Anexo~B) y la verificación manual de cada DOI en el sitio de su editorial. Asumo la responsabilidad por el contenido final del informe.
+
+% =====================================================================
+% 12. REFERENCIAS
+% =====================================================================
+\printbibliography[heading=bibnumbered,title={Referencias}]
+
+% =====================================================================
+% 13. ANEXOS
+% =====================================================================
+\newpage
+\section{Anexos}
+
+\subsection*{Anexo A: Esquema inicial de arquitectura dibujado a mano}
+
+\begin{figure}[H]
+\centering
+\IfFileExists{figuras/esquema_mano.jpg}{%
+  \includegraphics[width=0.85\textwidth]{figuras/esquema_mano.jpg}%
+}{%
+  \fbox{\parbox[c][9cm][c]{0.8\textwidth}{\centering Espacio reservado para \texttt{figuras/esquema\_mano.jpeg}}}%
+}
+\caption{Bosquejo inicial de la arquitectura de Apache Kafka, elaborado a mano antes de la revisión bibliográfica. Su evolución hacia la Figura~\ref{fig:arquitectura} se explica en la Sección~\ref{sec:diagrama}.}
+\label{fig:esquema}
+\end{figure}
+
+\newpage
+\subsection*{Anexo B: Evidencias de lectura y subrayado de fuentes científicas}
+
+Cada captura corresponde a un fragmento subrayado en el PDF original y citado en el cuerpo del informe.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.85\textwidth]{evidencias/lectura_1.png}
+\caption{Raptis y Passarella \cite{raptis2023survey}, p.~85336 (página 4 del PDF): replicación con líder y réplicas, y confirmación al productor tras el acuse de las réplicas. Citado en las Secciones~\ref{sec:arquitectura} y~\ref{sec:cap}.}
+\label{fig:lectura1}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.85\textwidth]{evidencias/lectura_2.png}
+\caption{Zhou et al. \cite{zhou2024distributed}, p.~4: líder y seguidores por partición, lista ISR y recuperación ante la caída de un broker. Citado en la Sección~\ref{sec:fallos}.}
+\label{fig:lectura2}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.85\textwidth]{evidencias/lectura_3.png}
+\caption{Zhou et al. \cite{zhou2024distributed}, p.~12: efecto de las operaciones de replicación y de la espera de confirmaciones sobre el rendimiento del productor. Citado en la Sección~\ref{sec:cap} (PACELC).}
+\label{fig:lectura3}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.85\textwidth]{evidencias/lectura_4.png}
+\caption{Pacella et al. \cite{pacella2025scalable}, p.~10: Tabla~1 y comparación del rendimiento de productores y consumidores de Kafka y RabbitMQ. Citado en la Sección~\ref{sec:comparativa}.}
+\label{fig:lectura4}
+\end{figure}
+
 \end{document}

@@ -93,4 +93,25 @@
    - *Solución:* Se contrastó la afirmación con la documentación oficial de Apache Kafka y se fundamentó en la Sección 5.3 el modelo exclusivamente pull, con sondeo prolongado (*long polling*) para evitar consultas vacías.
 
 ### 3. Tiempo Dedicado
-- **Duración:** [COMPLETAR] horas.
+- **Duración:** 0.5 horas.
+
+---
+
+## Sesión 5: 2026-11-13
+
+### 1. Actividades Realizadas
+- **Integración de Resultados Experimentales (Sección 6):** Incorporación de las cinco evidencias del clúster KRaft de 3 nodos (`evidencias/01_nodos_activos.png` a `evidencias/05_reeleccion_isr_2_3.png`) con su interpretación técnica: estado normal con `Isr: 1,2,3` y un líder por broker, falla del cliente al detener `kafka-1` y reelección automática de la Partición 0 hacia `Leader: 2` con `Isr: 2,3`, manteniendo la condición $|ISR| \ge m$ con `min.insync.replicas=2`.
+- **Casos Prácticos del Entorno del Estudiante (Sección 7):** Redacción de los dos casos observados como usuario: saturación del SGA de la UTEQ en periodos críticos (transparencia de concurrencia, cuellos de botella centralizados y particionamiento horizontal) y demoras en transferencias de banca móvil y mensajería sin cobertura (particiones de red, consistencia eventual y almacenamiento y reenvío).
+- **Cierre del Cuerpo del Informe (Secciones 8 a 13):** Redacción del análisis comparativo frente a RabbitMQ con tabla `booktabs` de seis criterios y discusión crítica de los datos de Pacella et al. y Maharjan et al., postura crítica con escenarios donde no conviene usar Kafka, cuatro conclusiones técnicas, declaración de uso de inteligencia artificial y anexos (bosquejo a mano en `figuras/esquema_mano.jpeg` y evidencias de lectura subrayadas `evidencias/lectura_1.png` a `evidencias/lectura_4.png`).
+- **Verificación Final y Compilación:** Revisión del formato IEEE de las 18 referencias (`biblatex` con `biber`), correcciones tipográficas y compilación limpia del documento completo (23 páginas) sin errores ni advertencias.
+
+### 2. Problemas Encontrados y Soluciones Aplicadas
+1. **Discrepancia entre la Excepción Documentada y la Evidencia Capturada:**
+   - *Problema:* El borrador describía un `TimeoutException` al detener `kafka-1`, pero la captura `04_fallo_timeout_nodo1.png` muestra `ConfigException: No resolvable bootstrap urls given in bootstrap.servers`, causada porque el DNS interno de Docker deja de resolver el nombre del contenedor detenido.
+   - *Solución:* Se corrigió el análisis en el Resumen, la Sección 5.1, la Sección 6 y las Conclusiones para reflejar la excepción real, y se añadió la evidencia `05_reeleccion_isr_2_3.png`, tomada desde `kafka-3`, para separar la falla del cliente del estado real del clúster.
+2. **Imagen del Anexo A no Detectada en Overleaf:**
+   - *Problema:* El bosquejo se subió como `esquema_mano.jpeg` mientras que `main.tex` buscaba `esquema_mano.jpg`, por lo que el documento mostraba el recuadro de espacio reservado en lugar de la imagen.
+   - *Solución:* Se unificó la extensión entre el archivo y las rutas de `\IfFileExists` e `\includegraphics`, y se ajustó el pie de figura del Anexo A.
+
+### 3. Tiempo Dedicado
+- **Duración:** 1.7 horas.
