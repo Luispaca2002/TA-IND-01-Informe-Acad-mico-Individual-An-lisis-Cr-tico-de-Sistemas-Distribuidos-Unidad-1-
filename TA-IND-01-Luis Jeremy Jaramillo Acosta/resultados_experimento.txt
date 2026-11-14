@@ -5,21 +5,16 @@ Fecha de ejecucion: 12 de noviembre de 2026
 
 1. Insercion por lotes (1,000,000 de filas sinteticas en analitica_uteq.eventos_red):
    - Estado: Ok. 1000000 rows in set.
-   - Particion generada: 202611 (Motor MergeTree).
+   - Tiempo transcurrido: 0.403 sec (2.48 million rows/s., 19.85 MB/s., 8.00 MB procesados).
+   - Memoria pico utilizada: 93.31 MiB.
 
 2. Consulta analitica de agregacion por origen:
    ┌─origen────────┬─total_eventos─┬─promedio_ms─┬─pico_ms─┐
-   │ nodo-quevedo  │        500000 │       93.13 │  186.25 │
-   │ nodo-valencia │        500000 │       92.50 │   185.0 │
+   │ nodo-quevedo  │        500000 │       93.75 │  186.25 │
+   │ nodo-valencia │        500000 │        92.5 │     185 │
    └───────────────┴───────────────┴─────────────┴─────────┘
-   - Tiempo de respuesta: Sub-segundo (< 0.05 s) mediante lectura selectiva columnar.
+   - Tiempo transcurrido: 0.030 sec (32.90 million rows/s., 773.23 MB/s., 11.97 MiB RAM).
 
-3. Inspeccion de partes fisicas en disco (select ... from system.parts):
-   ┌─partition─┬─name─────────┬────rows─┬─bytes_on_disk─┬─active─┐
-   │ 202611    │ 202611_1_1_0 │ 1000000 │       8194515 │      1 │
-   └───────────┴──────────────┴─────────┴───────────────┴────────┘
-   - Compresion verificada: 1,000,000 de filas almacenadas en ~8.19 MB activos.
-
-4. Simulacion de fallo de nodo (docker stop ch-nodo2):
+3. Simulacion de fallo de nodo (docker stop ch-nodo2):
    - ch-nodo2 -> Exited (137)
    - ch-nodo1 -> Up (operativo sin interrupcion bajo arquitectura shared-nothing).

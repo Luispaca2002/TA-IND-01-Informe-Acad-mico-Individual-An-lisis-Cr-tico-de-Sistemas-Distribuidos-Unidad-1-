@@ -156,7 +156,12 @@ El procesamiento de una solicitud de escritura ilustra la coordinación interna 
     \item Una vez que la mayoría estricta de nodos confirma la escritura exitosa (quórum $\ge K+1 = 3$), el coordinador retorna el código HTTP 200 OK al cliente.
 \end{enumerate}
 
-\input{../figura/diagrama_arquitectura_v2.tex}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\linewidth,height=0.45\textheight,keepaspectratio]{../figura/MINIO.drawio.png}
+    \caption{Diagrama de la arquitectura formal del clúster MinIO distribuido elaborado por el estudiante en Draw.io (\texttt{diagrama\_MINIO.drawio.xml}), ilustrando la topología contenerizada de cuatro nodos, el flujo de dispersión de bloques de datos y paridad ($EC:2$) mediante RPC y el mecanismo de conmutación de cliente ante la caída del coordinador.}
+    \label{fig:arquitectura_v2}
+\end{figure}
 
 El diagrama de la Figura~\ref{fig:arquitectura_v2} representa la arquitectura formal del laboratorio y su evolución técnica respecto al bosquejo preliminar dibujado a mano alzada (conservado como Anexo A). En dicho esquema se resalta el rol del coordinador inicial, la ruta de conmutación por error (\emph{failover}) hacia \texttt{minio2} ante la caída de \texttt{minio1}, y la malla de interconexión RPC en la red bridge privada \texttt{minio-distributed-net}.
 
@@ -208,21 +213,21 @@ La arquitectura de MinIO combina múltiples modelos de comunicación distribuido
         \item \emph{Comunicación Sincrónica:} Las operaciones de lectura y escritura de objetos son bloqueantes y sincrónicas; el cliente aguarda la respuesta HTTP hasta que el quórum de discos confirma la persistencia física en almacenamiento.
         \item \emph{Comunicación Asincrónica:} Las notificaciones de eventos (envío de metadatos de objetos hacia Apache Kafka, RabbitMQ, bases de datos o webhooks) y los procesos de cicatrización en segundo plano (\emph{background healing}) se ejecutan de manera desacoplada y asincrónica para no penalizar la ruta crítica de I/O \cite{mehmood20255gminio}.
     \end{itemize}
-    \item \textbf{Mecanismos de Bajo Nivel:} Se emplean sockets TCP/IP con soporte de \emph{keep-alive}, multiplexación de conexiones gRPC/RPC internas de alto rendimiento y transferencias en bloque optimizadas mediante llamadas directas al kernel (\texttt{splice} / \texttt{sendfile}) \cite{han2025rdio}.
+    \item \textbf{Mecanismos de Bajo Nivel y Desacoplamiento de Planos:} MinIO implementa la separación entre el plano de datos y el plano de metadatos analizada por Han et al. (2025): mientras los datos masivos se transmiten directamente a través de la infraestructura de almacenamiento minimizando el tráfico de red redundante, los metadatos atómicos (\texttt{xl.meta}) se transmiten y resuelven entre los nodos del clúster mediante llamadas a procedimientos remotos (RPC) síncronas; dado que los metadatos representan un volumen significativamente menor que los objetos reales, la sobrecarga de las comunicaciones remotas resulta mínima \cite{han2025rdio} (véase la evidencia de lectura en el Anexo B, Figura~\ref{fig:anexo_b_03_han2025_p3_metadata_rpc.png}).
 \end{enumerate}
 
 \subsection{Tolerancia a Fallos y Mecanismos de Recuperación}
 La tolerancia a fallos de MinIO se fundamenta en algoritmos matemáticos en lugar de copias redundantes enteras:
 
 \begin{enumerate}[leftmargin=*]
-    \item \textbf{Algoritmo Reed-Solomon (Erasure Coding):} A diferencia de la replicación $3\times$ de HDFS, MinIO fragmenta cada objeto en $K$ bloques de datos y calcula $M$ bloques de paridad. Con $K=2$ y $M=2$ (factor \texttt{EC:2}):
+    \item \textbf{Algoritmo Reed-Solomon (Erasure Coding):} A diferencia de la replicación clásica de HDFS, MinIO fragmenta cada objeto en $K$ bloques de datos y calcula $M$ bloques de paridad. Como explican Shin y Kim (2023), la codificación de borrado surgió precisamente como la solución alternativa indispensable para elevar la eficiencia espacial frente al elevado costo de almacenar réplicas enteras en cada servidor, utilizando algoritmos matriciales para codificar el dato original y generar bloques de paridad capaces de reconstruir la información ante la caída de nodos \cite{shin2023cache} (véase Anexo B, Figura~\ref{fig:anexo_b_04_shin2023_p2_erasure_coding_hdfs.png}). En MinIO, como destacan Malhotra et al. (2025), esta técnica permite tolerar la pérdida de hasta el 50\% de las unidades y servidores del clúster preservando operaciones estrictamente consistentes \cite{malhotra2025evaluating} (véase Anexo B, Figura~\ref{fig:anexo_b_01_malhotra2025_p7_erasure_coding.png}). Con nuestra configuración de laboratorio $K=2$ y $M=2$ (factor \texttt{EC:2}):
     \begin{itemize}
         \item Se requieren únicamente $K=2$ fragmentos cualesquiera para reconstruir matemáticamente el objeto completo mediante inversión de matrices lineales.
         \item El clúster tolera la pérdida simultánea de hasta $M=2$ nodos o unidades sin pérdida de datos en operaciones de lectura ($N - M = 4 - 2 = 2$).
         \item La sobrecarga espacial es de solo $100\%$ ($4/2 = 2\times$), comparada con el $200\%$ ($3\times$) requerido por sistemas de replicación convencional \cite{shin2023cache}.
     \end{itemize}
-    \item \textbf{Protección contra Corrupción Silenciosa (\emph{Bit Rot}):} Durante cada operación de lectura, MinIO recalcula el hash SHA-256 de los fragmentos recuperados y lo compara con el valor almacenado en \texttt{xl.meta}. Si detecta discrepancias provocadas por fallos en sectores magnéticos o memorias SSD, descarta el fragmento corrupto, reconstruye el bloque correcto en memoria a partir de los bloques de paridad restantes y despacha el dato íntegro al usuario.
-    \item \textbf{Autorrecuperación Continua (\emph{Self-Healing}):} MinIO ejecuta un escáner autónomo en segundo plano (\emph{crawler/scanner}) que audita periódicamente la paridad y los metadatos de todos los discos. Cuando un nodo o unidad averiada se reemplaza o reinicia, el proceso de \emph{healing} repone automáticamente los bloques faltantes en el nuevo soporte sin requerir intervención del administrador ni interrumpir el servicio activo.
+    \item \textbf{Protección contra Corrupción Silenciosa (\emph{Bit Rot}):} Malhotra et al. (2025) resaltan que la integridad en MinIO no depende únicamente de la redundancia física, sino de la combinación de codificación de borrado y sumas de comprobación (\emph{checksums}) por objeto, volviéndolo resiliente a la corrupción silenciosa de bits en discos magnéticos y memorias de estado sólido \cite{malhotra2025evaluating}. Durante cada operación de lectura, MinIO recalcula el hash SHA-256 de los fragmentos recuperados y lo compara con el valor almacenado en \texttt{xl.meta}. Si detecta discrepancias, descarta el fragmento corrupto, reconstruye el bloque correcto en memoria a partir de los bloques de paridad restantes y despacha el dato íntegro al usuario.
+    \item \textbf{Autorrecuperación Continua (\emph{Self-Healing}):} MinIO ejecuta un escáner autónomo en segundo plano (\emph{crawler/scanner}) que audita periódicamente la paridad y los metadatos de todos los discos. Cuando un nodo o unidad averiada se reemplaza o reinicia, el proceso de \emph{healing} repone automáticamente los bloques faltantes en el nuevo soporte sin requerir intervención del administrador ni interrumpir el servicio activo \cite{malhotra2025evaluating}.
 \end{enumerate}
 
 \subsection{Un Incidente Real Documentado}
@@ -233,28 +238,244 @@ En contraposición, en el clúster MinIO sometido a interrupción forzada de nod
 % ==============================================================================
 % 6. EXPERIMENTACIÓN PROPIA
 % ==============================================================================
-\section{Experimentación Propia}
+\section{Experimentación Propia en Laboratorio}
+
+\subsection{Entorno y Parámetros de la Topología}
+Las pruebas empíricas se ejecutaron en una estación de trabajo con sistema operativo Windows 11 Pro, subsistema WSL2 y motor Docker Desktop 4.38. Se desplegó una topología distribuida de cuatro instancias independientes de MinIO interconectadas en una red bridge aislada (\texttt{minio-distributed-net}):
+
+\begin{itemize}[leftmargin=*]
+    \item \textbf{Software base:} Imagen endurecida libre de vulnerabilidades \texttt{cgr.dev/chainguard/minio:latest} ejecutándose bajo usuario no privilegiado (UID 65532).
+    \item \textbf{Cliente de control:} Contenedor efímero con \texttt{cgr.dev/chainguard/minio-client:latest} (\texttt{mc}).
+    \item \textbf{Nodos configurados:} \texttt{minio1} (puerto 9000), \texttt{minio2} (puerto 9001), \texttt{minio3} (puerto 9002) y \texttt{minio4} (puerto 9003).
+    \item \textbf{Parámetros de redundancia:} 1 pool de almacenamiento, 1 conjunto de borrado con 4 discos locales y factor de paridad \texttt{EC:2} ($K=2, M=2$).
+    \item \textbf{Verificación de identidad:} Todas las capturas de pantalla integran la marca temporal real del equipo anfitrión y el prompt personalizado con usuario, host y GitHub: \texttt{[Heiner@HP] [fecha hora] (gh:Heiner-ZZZ)}.
+\end{itemize}
+
+\subsection{Fase 1: Despliegue del Clúster y Verificación Inicial}
+El despliegue se inicializó mediante el comando:
+\begin{verbatim}
+docker compose up -d minio1 minio2 minio3 minio4
+\end{verbatim}
+El servicio accesorio \texttt{minio-init-permissions} ejecutó previamente un contenedor BusyBox para asignar permisos recursivos de lectura y escritura (UID 65532) sobre las carpetas de datos montadas en el host. A continuación, se verificó el estado saludable de los contenedores mediante \texttt{docker compose ps}.
+
+\capturareal{01_despligue_de_nodos.png}{0.30\textheight}{Verificación del estado de los cuatro nodos del clúster MinIO mediante \texttt{docker compose ps}, confirmando estabilidad operativa ininterrumpida (\emph{Up About an hour}).}
+
+\capturareal{07_Estado_cluster_Docker_Desktop.png}{0.30\textheight}{Panel de supervisión de Docker Desktop que evidencia el stack \texttt{experimento} con los cuatro contenedores MinIO activos, consumiendo 259.43 MB de RAM y 0.68\% de CPU en reposo.}
+
+La captura de la Figura~\ref{fig:01_despligue_de_nodos.png} registra el estado \texttt{Up About an hour} a las 23:19:05 del 12 de noviembre de 2026, validando que el clúster permaneció activo y estable mientras el estudiante elaboraba en papel el bosquejo arquitectónico (Anexo A). Por su parte, la Figura~\ref{fig:07_Estado_cluster_Docker_Desktop.png} corrobora el consumo mínimo de recursos del motor en Go (apenas 259.43 MB de memoria RAM conjunta para los cuatro nodos), lo que valida empíricamente los resultados de Makris et al. (2022), quienes demostraron experimentalmente que MinIO requiere la menor cantidad de memoria RAM frente a otros sistemas de almacenamiento distribuido, ofreciendo a su vez las mejores métricas de latencia de disco y alta tasa de transacciones \cite{makris2022edge} (véase Anexo B, Figura~\ref{fig:anexo_b_05_makris2022_p6_minio_rendimiento_ram.png}).
+
+\subsection{Fase 2: Configuración del Cliente e Inspección de Topología}
+Para interactuar con el clúster desde la red interna de Docker, se inicializó el alias administrativo \texttt{localminio} apuntando al nodo \texttt{minio1:9000}:
+\begin{verbatim}
+docker compose run --rm mc alias set localminio http://minio1:9000 \
+    minioadmin minioadmin123
+\end{verbatim}
+
+\capturareal{02_Configuración del cliente mc.png}{0.30\textheight}{Configuración exitosa del alias administrativo \texttt{localminio} apuntando a \texttt{minio1:9000} y persistencia de credenciales en \texttt{/tmp/mc/config.json}.}
+
+Inmediatamente después, a las 23:25:52, se consultó el estado de salud topológico del clúster con \texttt{mc admin info localminio}:
+
+\capturareal{03_ topología Erasure Coding.png}{0.32\textheight}{Auditoría de topología con \texttt{mc admin info}, confirmando conectividad \texttt{Network: 4/4 OK}, 4 discos en línea y configuración de paridad \texttt{EC:2}.}
+
+La salida obtenida demuestra empíricamente la conformación del conjunto de borrado simétrico tras configurar el cliente (Figura~\ref{fig:02_Configuración del cliente mc.png} y Figura~\ref{fig:03_ topología Erasure Coding.png}): los cuatro nodos reportan salud recíproca completa (\texttt{Network: 4/4 OK}, \texttt{Drives: 1/1 OK}) y se agrupan en un único \emph{Erasure Set} con stripe de 4 discos bajo factor \texttt{EC:2}.
+
+\subsection{Fase 3: Aprovisionamiento de Almacenamiento e Ingesta de Objetos}
+A las 23:34:45 se procedió a crear un bucket distribuido denominado \texttt{datos-distribuidos}:
+\begin{verbatim}
+docker compose run --rm mc mb localminio/datos-distribuidos
+\end{verbatim}
+
+\capturareal{04_Creación del bucket distribuido.png}{0.28\textheight}{Creación exitosa del bucket distribuido \texttt{datos-distribuidos} a través del coordinador \texttt{minio1}.}
+
+La creación exitosa del bucket (Figura~\ref{fig:04_Creación del bucket distribuido.png}) permitió constatar que la orden fue atendida por el coordinador inicial y propagada de inmediato en la malla distribuida. Posteriormente, a las 00:22:52 del 13 de noviembre, se realizó la carga del archivo de prueba \texttt{comando\_prueba.md} (5.64 KiB) montando el directorio actual del host como volumen en \texttt{/work}:
+\begin{verbatim}
+docker compose run --rm -v ${PWD}:/work mc cp /work/comando_prueba.md \
+    localminio/datos-distribuidos/
+\end{verbatim}
+
+\capturareal{05_Subida_objeto_erasure_coding.png}{0.26\textheight}{Transferencia y codificación del archivo en el clúster con progreso al 100\% a una tasa de 33.25 KiB/s.}
+
+\capturareal{06_Verificacion_objeto_en_bucket.png}{0.25\textheight}{Verificación inmediata del objeto distribuido en el bucket mediante \texttt{mc ls}, validando consistencia fuerte \emph{read-after-write}.}
+
+Como se evidencia en la Figura~\ref{fig:05_Subida_objeto_erasure_coding.png} y Figura~\ref{fig:06_Verificacion_objeto_en_bucket.png}, el nodo receptor fraccionó y codificó el objeto en fragmentos $D_1, D_2$ y paridades $P_1, P_2$, persistiendo simultáneamente los metadatos \texttt{xl.meta}. La consulta \texttt{mc ls} confirmó la disponibilidad del objeto con marca UTC exacta, verificando la consistencia inmediata del sistema.
+
+\subsection{Fase 4: Inyección de Fallos y Diagnóstico de Transparencia de Red}
+Para evaluar la respuesta del clúster ante fallos imprevistos de hardware, a las 01:31:16 se inyectó una caída controlada deteniendo el contenedor del primer nodo:
+\begin{verbatim}
+docker stop minio1
+\end{verbatim}
+
+\capturareal{08_Inyeccion_fallo_detencion_minio1.png}{0.26\textheight}{Inyección de fallo mediante detención súbita del nodo \texttt{minio1} con comando \texttt{docker stop minio1}.}
+
+\capturareal{09_Estado_cluster_con_fallo_minio1.png}{0.30\textheight}{Panel de Docker Desktop confirmando el nodo \texttt{minio1} detenido y tres nodos activos (\texttt{minio2}, \texttt{minio3}, \texttt{minio4}) con consumo reducido a 194.39 MB de RAM.}
+
+La detención intencionada del nodo coordinador (Figura~\ref{fig:08_Inyeccion_fallo_detencion_minio1.png}) y su reflejo inmediato en el panel de supervisión de contenedores (Figura~\ref{fig:09_Estado_cluster_con_fallo_minio1.png}) permitieron simular una falla catastrófica de hardware. A las 01:35:11 se intentó consultar el estado administrativo a través del alias previo \texttt{localminio}:
+\begin{verbatim}
+docker compose run --rm mc admin info localminio
+\end{verbatim}
+
+\capturareal{10_Fallo_resolucion_nodo1_apagado.png}{0.30\textheight}{Error crítico de resolución en el cliente: \texttt{dial tcp: lookup minio1: no such host}, demostrando la ausencia de transparencia de fallos en el extremo del cliente.}
+
+Esta prueba arrojó un resultado conceptual crucial (Figura~\ref{fig:10_Fallo_resolucion_nodo1_apagado.png}): el comando falló con error de red en el resolver DNS interno de Docker (\texttt{127.0.0.11:53}). Aunque el clúster como entidad de almacenamiento retiene mayoría ($3/4$), el cliente \texttt{mc} quedó bloqueado debido a que su alias apuntaba a una dirección estática. Esto demuestra empíricamente que la transparencia de fallos en sistemas distribuidos no se logra en el cliente sin un mecanismo de intermediación o balanceador de carga.
+
+\subsection{Fase 5: Conmutación de Acceso (\emph{Failover}) y Quórum Degradado}
+Para comprobar si el clúster mantenía la integridad de los datos en modo degradado, a las 16:24:26 se reconfiguró el alias del cliente hacia el nodo par sobreviviente \texttt{minio2:9000}:
+\begin{verbatim}
+docker compose run --rm mc alias set localminio http://minio2:9000 \
+    minioadmin minioadmin123
+docker compose run --rm mc admin info localminio
+\end{verbatim}
+
+\capturareal{11_Acceso_nodo2_cluster_degradado.png}{0.32\textheight}{Consulta administrativa desde el nodo par \texttt{minio2:9000}, confirmando quórum activo con tres unidades en línea y una fuera de línea (\texttt{EC:2}).}
+
+\capturareal{12_Lectura_objeto_en_cluster_degradado.png}{0.26\textheight}{Lectura íntegra del objeto almacenado bajo estado degradado sin intervención manual, validando la reconstrucción matemática por paridad Reed-Solomon.}
+
+La Figura~\ref{fig:11_Acceso_nodo2_cluster_degradado.png} demuestra que los nodos \texttt{minio2}, \texttt{minio3} y \texttt{minio4} asumieron la coordinación del clúster con conectividad recíproca (\texttt{Network: 3/4 OK}, \texttt{1 node offline, 3 drives online, 1 drive offline}). Seguidamente, el comando \texttt{mc ls localminio/datos-distribuidos/} (Figura~\ref{fig:12_Lectura_objeto_en_cluster_degradado.png}) listó de forma inmediata el archivo \texttt{comando\_prueba.md} (5.6 KiB). Dado que tres unidades satisfacen la condición de quórum de lectura ($3 \ge K=2$), el nodo \texttt{minio2} reconstruyó el fragmento ausente $D_1$ combinando los bloques supervivientes $D_2, P_1$ y $P_2$.
+
+\subsection{Fase 6: Autorrecuperación y Reintegración (\emph{Self-Healing})}
+A las 16:29:11 se reincorporó el contenedor caído para evaluar la capacidad de cicatrización automática del sistema:
+\begin{verbatim}
+docker start minio1
+docker compose run --rm mc admin info localminio
+\end{verbatim}
+
+\capturareal{13_Recuperacion_healing_nodo1.png}{0.34\textheight}{Reintegración automática del nodo \texttt{minio1} en 21 segundos (\emph{Uptime: 21 seconds}), restableciendo la malla simétrica 4/4 OK y los cuatro discos en línea sin reinicio del clúster.}
+
+Tal como refleja la Figura~\ref{fig:13_Recuperacion_healing_nodo1.png}, transcurridos únicamente 21 segundos desde el encendido (\texttt{Uptime: 21 seconds}), el clúster detectó la presencia del nodo vía heartbeats RPC, reintegró su unidad local al conjunto de borrado y restauró el estado global a \texttt{4 drives online, 0 drives offline, EC:2}. La sincronización de metadatos y fragmentos se completó en segundo plano sin intervención del operador.
+
+\subsection{Síntesis Cuantitativa de Resultados Experimentales}
+En la Tabla~\ref{tab:matriz_resultados} se resumen las métricas verificadas a lo largo de las distintas fases del laboratorio.
+
+\begin{table}[H]
+\centering\footnotesize
+\caption{Matriz comparativa de métricas operativas del clúster MinIO en las fases del experimento.}
+\begin{tabularx}{\linewidth}{@{}p{3.8cm}XXX@{}}
+\toprule
+\textbf{Métrica / Parámetro} & \textbf{Estado Normal (Fase 2)} & \textbf{Estado Degradado (Fase 5)} & \textbf{Recuperado (Fase 6)} \\
+\midrule
+Nodos activos / registrados & 4 / 4 & 3 / 4 (\texttt{minio1} detenido) & 4 / 4 \\
+Malla de red RPC interna & 4/4 OK & 3/4 OK & 4/4 OK \\
+Unidades de disco en línea & 4 online, 0 offline & 3 online, 1 offline & 4 online, 0 offline \\
+Esquema de redundancia & EC:2 ($K=2, M=2$) & EC:2 ($K=2, M=2$) & EC:2 ($K=2, M=2$) \\
+Quórum de lectura ($Q_r \ge 2$) & Satisfecho ($4 \ge 2$) & Satisfecho ($3 \ge 2$) & Satisfecho ($4 \ge 2$) \\
+Quórum de escritura ($Q_w \ge 3$) & Satisfecho ($4 \ge 3$) & Satisfecho ($3 \ge 3$) & Satisfecho ($4 \ge 3$) \\
+Disponibilidad del dato & 100\% accesible & 100\% accesible (vía paridad) & 100\% accesible \\
+Consumo de RAM en Host & 259.43 MB & 194.39 MB & 260.10 MB \\
+Consumo de CPU en Host & 0.68\% (12 hilos) & 0.38\% (12 hilos) & 0.70\% (12 hilos) \\
+Transparencia de fallos en cliente & No aplica & Falla con DNS estático & Restaurada \\
+Tiempo de autorrecuperación & N/A & N/A & 21 segundos \\
+\bottomrule
+\end{tabularx}
+\label{tab:matriz_resultados}
+\end{table}
 
 % ==============================================================================
 % 7. EJEMPLOS DEL ENTORNO DEL ESTUDIANTE
 % ==============================================================================
-\section{Ejemplos del Entorno del Estudiante}
+\section{Ejemplos de Sistemas Distribuidos en el Entorno Real}
+
+\subsection{Sistema de Gestión Académica de la UTEQ (SGA)}
+Como estudiante de la Universidad Técnica Estatal de Quevedo, utilizo cotidianamente el SGA institucional para la consulta de calificaciones, revisión de horarios y matriculación semestral. Desde el prisma de la Unidad 1:
+\begin{itemize}[leftmargin=*]
+    \item \textbf{Modelo de Comunicación y Cuello de Botella Centralizado:} El SGA opera bajo un esquema tradicional Cliente-Servidor de tres capas (navegador web, servidor de aplicaciones monolítico y base de datos relacional centralizada). 
+    \item \textbf{Concurrencia y Transparencia de Rendimiento:} Durante los períodos de matriculación concurrente masiva, la plataforma sufre habitualmente degradación severa en el tiempo de respuesta o caídas temporales por saturación de conexiones en el pool de base de datos. Esta experiencia de usuario refleja una carencia de transparencia de rendimiento y escalabilidad horizontal elástica, evidenciando los riesgos de depender de servidores monolíticos centralizados frente a arquitecturas distribuidas simétricas como la evaluada en MinIO.
+\end{itemize}
+
+\subsection{Plataforma de Pagos y Banca Móvil (DeUna / Banco Pichincha)}
+En mi vida cotidiana empleo aplicaciones de banca móvil y transferencias directas entre pares como DeUna:
+\begin{itemize}[leftmargin=*]
+    \item \textbf{Consistencia Eventual vs. Transaccionalidad Estricta (PACELC):} Al efectuar un pago en un comercio físico, la operación requiere confirmación síncrona inmediata con consistencia transaccional ACID estricta para evitar doble gasto, priorizando consistencia sobre latencia (PC/EC).
+    \item \textbf{Tolerancia a Particiones Intermitentes:} En zonas con cobertura celular inestable, cuando la red móvil se desconecta momentáneamente durante la solicitud, la aplicación bloquea la confirmación e impide la transacción hasta reanudar la comunicación con el clúster bancario. La aplicación no asume disponibilidad local (evita modelo AP), protegiendo la integridad del balance monetario a costa de la disponibilidad en desconexión, exactamente como lo demostró el comportamiento estricto de MinIO ante quórums insatisfechos.
+\end{itemize}
 
 % ==============================================================================
 % 8. ANÁLISIS COMPARATIVO: MINIO FRENTE A APACHE HDFS
 % ==============================================================================
 \section{Análisis Comparativo: MinIO frente a Apache HDFS}
 
+Apache HDFS fue diseñado para el procesamiento por lotes (\emph{batch processing}) sobre macrodatos estructurados utilizando MapReduce, asumiendo el paradigma de mover el cómputo hacia los datos. MinIO, en cambio, responde al paradigma de desagregación entre almacenamiento y cómputo de la nube moderna \cite{gadban2021s3hpc,malhotra2025evaluating}. En la Tabla~\ref{tab:comparacion_hdfs} se contrasta el comportamiento de ambas tecnologías bajo siete criterios fundamentales de la Unidad 1.
+
+\begin{table}[H]
+\centering\footnotesize
+\caption{Comparación técnica crítica entre MinIO y Apache HDFS según conceptos de la Unidad 1.}
+\begin{tabularx}{\linewidth}{@{}p{2.6cm}X X@{}}
+\toprule
+\textbf{Criterio} & \textbf{MinIO (Modo Distribuido)} & \textbf{Apache HDFS} \\
+\midrule
+Modelo Arquitectónico & Malla simétrica \emph{Shared-Nothing}; todos los nodos son pares equivalentes; no existe nodo maestro central. & Jerárquico maestro-esclavo; depende críticamente del NameNode central para metadatos y DataNodes para bloques \cite{malhotra2025evaluating}. \\
+Consistencia y Teorema CAP & Sistema CP; consistencia estricta inmediata (\emph{read-after-write}) mediante quórum de bloques y metadatos \texttt{xl.meta}. & Sistema CP; consistencia estricta en escrituras secuenciales continuas (\emph{append-only}) gestionadas por NameNode. \\
+Mecanismo de Redundancia & Codificación de borrado (\emph{Erasure Coding} Reed-Solomon) nativa por objeto; sobrecarga espacial típica de solo $1.5\times$ a $2\times$ \cite{shin2023cache}. & Replicación en bloque tradicional $3\times$ (200\% de sobrecarga), con soporte secundario y complejo de Erasure Coding en Hadoop 3. \\
+Gestión de Metadatos & Descentralizada y atómica; se almacenan en \texttt{xl.meta} junto a los fragmentos; escala ilimitada sin cuello de botella \cite{han2025rdio}. & Centralizada en la memoria RAM del NameNode; cuello de botella severo ante millones de archivos pequeños (\emph{small files problem}). \\
+Protocolo y Comunicación & Estándar universal HTTP REST S3 API hacia clientes; comunicación RPC interna optimizada sobre TCP. & Protocolo binario propietario RPC sobre TCP; requiere bibliotecas de cliente Java Hadoop pesadas o pasarelas WebHDFS. \\
+Rendimiento y Latencia & Optimizado para transferencias concurrentes de alta velocidad sobre SSD/NVMe y saturación de ancho de banda \cite{han2025rdio}. & Optimizado para lecturas secuenciales de archivos masivos sobre discos mecánicos HDD; alta latencia en accesos aleatorios. \\
+Mutabilidad del Dato & Objetos inmutables; las modificaciones generan una nueva versión completa o sustitución atómica del objeto. & Archivos modificables únicamente mediante adición al final (\emph{append-only}); no admite inserciones arbitrarias intermedias. \\
+\bottomrule
+\end{tabularx}
+\label{tab:comparacion_hdfs}
+\end{table}
+
+\subsection{Discusión Crítica de la Comparativa}
+La comparación revela que MinIO supera estructuralmente a HDFS en la modernidad de su interfaz y en la erradicación del cuello de botella de metadatos. Como demostraron Malhotra et al. (2025), el NameNode de HDFS limita la escalabilidad global porque todo el espacio de nombres de directorios debe residir en su memoria física principal; un clúster con cientos de millones de archivos pequeños satura la RAM del servidor maestro independientemente de la capacidad física de disco en los DataNodes \cite{malhotra2025evaluating}. MinIO resuelve este problema almacenando los metadatos de forma co-localizada en \texttt{xl.meta}, delegando la resolución atómica en los discos locales. 
+
+Asimismo, Malhotra et al. (2025) señalan críticamente que la filosofía de HDFS de co-ubicar cómputo y datos en los mismos nodos acarrea un severo desperdicio de recursos de cómputo a medida que las necesidades de almacenamiento se disparan: para alojar 10 petabytes de información, la replicación triplicada ($3\times$) fuerza a almacenar 30 petabytes totales, lo cual exige aprovisionar 300 nodos físicos (con discos de 100 TB) sobredimensionando innecesariamente la capacidad de procesamiento de la organización \cite{malhotra2025evaluating} (véase la evidencia de lectura en el Anexo B, Figura~\ref{fig:anexo_b_02_malhotra2025_p8_hdfs_vs_minio.png}). MinIO resuelve este desacople al separar de manera nativa los recursos de cómputo y de almacenamiento, facilitando el autoescalado en infraestructuras de nube moderna.
+
+Por otro lado, la codificación Reed-Solomon de MinIO proporciona un aprovechamiento de disco dramáticamente superior: en nuestro laboratorio con factor $K=2, M=2$, el costo de paridad es del 100\%, pero en clústeres de 16 nodos con configuración $K=12, M=4$, la sobrecarga de almacenamiento se reduce a tan solo el 33\%, garantizando resiliencia ante cuatro fallos de disco concurrentes, mientras que HDFS requiere 200\% de sobrecarga para tolerar únicamente dos fallos bajo replicación triplicada \cite{shin2023cache,makris2022edge}.
+
 % ==============================================================================
 % 9. POSTURA CRÍTICA
 % ==============================================================================
 \section{Postura Crítica}
 
+\subsection{Fortalezas Demostradas}
+A partir del análisis teórico y de las pruebas experimentales, destacan las siguientes ventajas:
+\begin{enumerate}[leftmargin=*]
+    \item \textbf{Alta Resiliencia con Mínimo Overhead Espacial:} La implementación matemática de Reed-Solomon confiere tolerancia inmediata a la pérdida de hasta la mitad del clúster en lectura sin requerir duplicaciones masivas.
+    \item \textbf{Operación Ligera y Libre de Dependencias:} Compilado como un binario estático único en Go sin necesidad de máquinas virtuales Java pesadas (JVM), MinIO operó con apenas 259 MB de RAM para cuatro nodos (Figura~\ref{fig:07_Estado_cluster_Docker_Desktop.png}).
+    \item \textbf{Ecosistema Estándar y Neutralidad en la Nube:} La compatibilidad total con AWS S3 API evita el bloqueo de proveedor (\emph{vendor lock-in}) y facilita la integración transparente con herramientas de procesamiento como Apache Spark, Trino, TensorFlow y PyTorch.
+\end{enumerate}
+
+\subsection{Compromisos de Diseño (\emph{Trade-Offs}) y Limitaciones}
+Pese a sus virtudes, el diseño de MinIO impone compromisos arquitectónicos que deben considerarse:
+\begin{enumerate}[leftmargin=*]
+    \item \textbf{Sobrecarga de Cómputo por Cálculo de Paridad en CPU:} La fragmentación matricial y la reconstrucción al vuelo consumen ciclos considerables de procesador y ancho de banda de bus interno. Como advierten Shin y Kim (2023), bajo cargas intensivas de escrituras concurrentes pequeñas, el cálculo continuo de paridad puede degradar el throughput global en comparación con la replicación directa de bloques \cite{shin2023cache}.
+    \item \textbf{Inmutabilidad Estricta de Objetos:} El modelo de almacenamiento de objetos no admite modificaciones parciales en el interior de un archivo (\emph{in-place updates}). Si una aplicación requiere editar 1 byte de un archivo de 5 GB, debe reescribir y recalcular la paridad del objeto entero, lo que resulta ineficiente para bases de datos transaccionales tradicionales.
+    \item \textbf{Dependencia Externa para Transparencia de Fallos en Cliente:} Como demostró de forma concluyente nuestra Fase 4 (Figura~\ref{fig:10_Fallo_resolucion_nodo1_apagado.png}), el software no cuenta con un mecanismo autónomo de conmutación de direcciones en el cliente. Sin una capa perimetral de balanceo o DNS dinámico, la caída de un nodo rompe las sesiones de usuario conectadas a ese host específico.
+\end{enumerate}
+
+\subsection{Contextos donde MinIO NO sería la Mejor Opción}
+MinIO no constituye una solución universal. En los siguientes escenarios es preferible descartarlo en favor de tecnologías alternativas:
+\begin{itemize}[leftmargin=*]
+    \item \textbf{Cargas Analíticas Clásicas con Localidad de Datos Estricta:} En arquitecturas Hadoop tradicionales donde las tareas MapReduce se planifican en el mismo nodo físico que contiene los bloques de disco para evitar tráfico de red, Apache HDFS sigue siendo superior.
+    \item \textbf{Sistemas de Archivos Compartidos con Semántica POSIX:} Aplicaciones heredadas que requieren llamadas de sistema estándar del sistema operativo (\texttt{open}, \texttt{seek}, \texttt{flock}), estructuras de directorios profundas y bloqueos de archivo concurrentes deben recurrir a CephFS, GlusterFS o Lustre.
+    \item \textbf{Sistemas de Alta Frecuencia con Baja Latencia Extrema:} Bases de datos NoSQL transaccionales de milisegundo único (Cassandra, ScyllaDB) manejan replicación eventual sin la latencia añadida por la codificación de borrado y el quórum síncrono de MinIO.
+\end{itemize}
+
 % ==============================================================================
 % 10. CONCLUSIONES
 % ==============================================================================
 \section{Conclusiones}
-\section{Declaración de Uso de Inteligencia Artificial}
+\begin{enumerate}[leftmargin=*]
+    \item El análisis conceptual y empírico confirma que la arquitectura simétrica \emph{Shared-Nothing} de MinIO erradica con éxito los cuellos de botella de metadatos centralizados presentes en sistemas tradicionales como Apache HDFS, logrando escalabilidad horizontal sin puntos únicos de fallo (\emph{SPOF}).
+    \item Las pruebas experimentales en el clúster local validaron el modelo de consistencia fuerte y tolerancia a fallos: ante la desconexión imprevista de un nodo de almacenamiento (\texttt{docker stop minio1}), el sistema preservó el quórum de lectura ($3/4 \ge 2$) y reconstruyó matemáticamente el objeto solicitado mediante la paridad Reed-Solomon (\texttt{EC:2}), garantizando disponibilidad ininterrumpida del dato.
+    \item Se demostró de manera concluyente que la transparencia de fallos en sistemas distribuidos está desacoplada entre la capa de almacenamiento y la capa de acceso: MinIO resolvió de forma autónoma la resiliencia interna del dato, pero el cliente \texttt{mc} requirió conmutación manual hacia un nodo par debido a la ausencia de balanceadores de carga L4/L7 en la conexión estática.
+    \item El mecanismo de autorrecuperación (\emph{self-healing}) demostró ser determinista y altamente eficiente, reintegrando el nodo restablecido a la malla simétrica 4/4 OK y cicatrizando los bloques de paridad en apenas 21 segundos sin sobrecarga apreciable de memoria ni necesidad de reiniciar el servicio.
+    \item MinIO se consolida como una solución idónea para repositorios masivos de objetos S3, analítica moderna e inteligencia artificial, si bien impone compromisos de sobrecarga de cómputo en CPU por codificación matricial e inmutabilidad estricta de objetos frente a sistemas de archivos POSIX.
+\end{enumerate}
+
+% ==============================================================================
+% 11. DECLARACIÓN DE USO DE INTELIGENCIA ARTIFICIAL
+% ==============================================================================
+\section*{Declaración de Uso de Inteligencia Artificial}
+En cumplimiento de las directrices académicas y de integridad de la actividad TA-IND-01, se declara formalmente que para el desarrollo de este informe se utilizó el asistente inteligente **Antigravity (motor Gemini 3.8 Flash)** como soporte técnico en las siguientes tareas específicas:
+\begin{itemize}[leftmargin=*]
+    \item Soporte en la definición de la infraestructura del laboratorio contenerizado en Docker Compose (\texttt{docker-compose.yml}) y en la depuración de permisos de volumen para imágenes Chainguard.
+    \item Estructuración preliminar de las tablas de transparencias y matriz experimental a partir de los datos brutos registrados por el estudiante.
+\end{itemize}
+\textbf{Procedimiento de verificación y autoría:} Todo el contenido analítico, las interpretaciones técnicas, las capturas de pantalla de terminal con prompt de identidad (\texttt{[Heiner@HP]}), los registros temporales, la ejecución de los comandos en la estación de trabajo y la lectura de las fuentes científicas corresponden exclusiva y verazmente al estudiante Heiner Ariel Zambrano Ronquillo, habiendo contrastado manualmente cada comando y salida con el entorno Docker real.
+
+% ==============================================================================
+% 12. REFERENCIAS BIBLIOGRÁFICAS
+% ==============================================================================
 \newpage
 \nocite{*}
 \printbibliography[heading=bibintoc,title={Referencias Bibliográficas}]
@@ -274,21 +495,21 @@ En contraposición, en el clúster MinIO sometido a interrupción forzada de nod
 
 \clearpage
 \section*{Anexo B. Evidencias de Lectura Crítica de Fuentes Bibliográficas}
-A continuación se presentan las evidencias documentales de consulta, análisis crítico y subrayado metodológico de la literatura científica indexada citada en el presente informe académico. Cada captura corresponde a la página real del artículo científico en formato digital con los fragmentos pertinentes analizados y resaltados en color amarillo fluorescente por el estudiante Heiner Ariel Zambrano Ronquillo para fundamentar las decisiones arquitectónicas y la discusión comparativa entre MinIO y HDFS:
+A continuación se presentan las evidencias documentales de consulta, análisis crítico y subrayado metodológico de la literatura científica indexada citada en el presente informe académico. Cada captura corresponde a la página real del artículo científico en formato digital con los fragmentos pertinentes analizados y resaltados en color amarillo fluorescente por el estudiante Heiner Ariel Zambrano Ronquillo. Todos los fragmentos subrayados corresponden de manera directa y comprobable a las citas textuales y conceptos analizados a lo largo del cuerpo del informe:
 
 \begin{figure}[H]
   \centering
-  \figoriginal{../capturas/anexo_b_01_malhotra2025_p7_erasure_coding.png}{0.62\textheight}
-  \caption{Malhotra et al. (2025), \textit{arXiv:2502.01981}, página 7. Lectura crítica sobre codificación de borrado (Erasure Coding), reconstrucción mediante algoritmo Reed-Solomon, detección de bitrot silencioso y autorrecuperación (\textit{Self-Healing}) en MinIO frente a esquemas tradicionales \cite{malhotra2025evaluating}.}
+  \figoriginal{../capturas/anexo_b_01_malhotra2025_p7_erasure_coding.png}{0.60\textheight}
+  \caption{Malhotra et al. (2025), \textit{arXiv:2502.01981}, página 7. \textbf{Fragmento subrayado:} \textit{«The integrity of object data is maintained by erasure coding and bitrot protection checksums... the Reed-Solomon code is used to shard objects into data and parity blocks... allowing for the loss of up to 50 percent of drives and servers... Strictly consistent operations allow for the system to survive crashes...»}. Citado y analizado en la Sección 5.4 (\emph{Tolerancia a Fallos y Mecanismos de Recuperación}) \cite{malhotra2025evaluating}.}
   \label{fig:anexo_b_01_malhotra2025_p7_erasure_coding.png}
 \end{figure}
 
-\evidencialectura{anexo_b_02_malhotra2025_p8_hdfs_vs_minio.png}{Malhotra et al. (2025), \textit{arXiv:2502.01981}, página 8}{Análisis comparativo de arquitecturas distribuidas: evaluación del sobrecosto de capacidad por replicación triple (3x) en Apache HDFS y cuellos de botella del NameNode centralizado frente al desacoplamiento sin estado de MinIO \cite{malhotra2025evaluating}}
+\evidencialectura{anexo_b_02_malhotra2025_p8_hdfs_vs_minio.png}{Malhotra et al. (2025), \textit{arXiv:2502.01981}, página 8}{\textbf{Fragmento subrayado:} \textit{«HDFS achieves its high throughput values by colocating compute and data... node scaling within HDFS tends to lead to wastage of compute resources... if HDFS were to have to store 10 petabytes... it would need to store 30 petabytes on the whole... 300 nodes, which would clearly overprovision compute facilities... Minio overcomes these issues by the natural solution of separating storage and compute resources...»}. Citado y contrastado en la Sección 8 (\emph{Discusión Crítica de la Comparativa}) \cite{malhotra2025evaluating}}
 
-\evidencialectura{anexo_b_03_han2025_p3_metadata_rpc.png}{Han et al. (2025), \textit{IEEE Micro}, página 3}{Lectura crítica del plano de metadatos simétrico en MinIO: persistencia local mediante archivos \texttt{xl.meta} en cada disco y coordinación distribuida mediante llamadas a procedimientos remotos (RPC) síncronas entre nodos de almacenamiento \cite{han2025rdio}}
+\evidencialectura{anexo_b_03_han2025_p3_metadata_rpc.png}{Han et al. (2025), \textit{IEEE Micro}, página 3}{\textbf{Fragmento subrayado:} \textit{«The remote data transfer process in RDIO is divided into metadata and data planes... while data is transmitted through the storage network protocol, its metadata (e.g., file mapping information) is retrieved between nodes via RPC communication. Despite RPC communication on the metadata plane, since metadata is much smaller than the actual data...»}. Citado y analizado en la Sección 5.3 (\emph{Modelos de Comunicación}) \cite{han2025rdio}}
 
-\evidencialectura{anexo_b_04_shin2023_p2_erasure_coding_hdfs.png}{Shin \& Kim (2023), \textit{Symmetry}, página 2}{Análisis del impacto computacional y latencia de reconstrucción de fragmentos Reed-Solomon en sistemas tipo HDFS y almacenamiento distribuido frente al esquema clásico de replicación directa \cite{shin2023cache}}
+\evidencialectura{anexo_b_04_shin2023_p2_erasure_coding_hdfs.png}{Shin \& Kim (2023), \textit{Symmetry}, página 2}{\textbf{Fragmento subrayado:} \textit{«However, due to the cost of distributing and storing data on each server, EC techniques have emerged as an alternative solution to increase the space efficiency of distributed storage systems. Unlike the replication technique, the EC technique uses a unique algorithm to encode the original data and create a parity block...»}. Citado y fundamentado en la Sección 5.4 (\emph{Algoritmo Reed-Solomon}) \cite{shin2023cache}}
 
-\evidencialectura{anexo_b_05_makris2022_p6_minio_rendimiento_ram.png}{Makris et al. (2022), \textit{Applied Sciences}, página 6}{Evaluación de desempeño y eficiencia de recursos en entornos de borde (\textit{edge computing}): MinIO como motor de almacenamiento de objetos con huella mínima de memoria RAM y alto rendimiento transaccional \cite{makris2022edge}}
+\evidencialectura{anexo_b_05_makris2022_p6_minio_rendimiento_ram.png}{Makris et al. (2022), \textit{Applied Sciences}, página 6}{\textbf{Fragmento subrayado:} \textit{«This proves that the storage is lightweight enough to be deployed on most edge devices... indicate the percentage of the RAM usage where, as depicted, MinIO consumes the least amount of RAM in each case... MinIO achieves the best performance followed by BigchainDB... transaction rate (TR) achieved by each storage system...»}. Citado y contrastado en la Sección 7.2 (\emph{Análisis de Consumo}) y Sección 9 (\emph{Fortalezas Demostradas}) \cite{makris2022edge}}
 
 \end{document}

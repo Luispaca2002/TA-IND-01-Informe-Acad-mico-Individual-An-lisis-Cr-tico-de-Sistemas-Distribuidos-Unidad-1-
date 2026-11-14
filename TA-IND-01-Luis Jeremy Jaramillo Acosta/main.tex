@@ -33,44 +33,26 @@
 \addbibresource{referencias.bib}
 
 \begin{document}
+\begin{center}
+    {\Large \textbf{Análisis crítico comparativo de ClickHouse como sistema de gestión de bases de datos analítico distribuido frente a Apache Cassandra}}\\[0.35cm]
+    {\normalsize \textbf{Estudiante:} Luis Jeremy Jaramillo Acosta \quad|\quad \textbf{Paralelo:} A \quad|\quad \textbf{Actividad:} TA-IND-01}\\[0.15cm]
+    {\small Universidad Técnica Estatal de Quevedo — Aplicaciones Distribuidas — Noviembre de 2026}
+\end{center}
+\vspace{0.3cm}
+\hrule
+\vspace{0.4cm}
 \justifying
 
 % =========================================================================
-% 1. CARÁTULA
-% =========================================================================
-\begin{titlepage}
-    \centering
-    \vspace*{0.8cm}
-    {\Large \textbf{UNIVERSIDAD TÉCNICA ESTATAL DE QUEVEDO}}\\[0.3cm]
-    {\large \textbf{FACULTAD DE CIENCIAS DE LA INGENIERÍA}}\\[0.2cm]
-    {\normalsize \textbf{CARRERA DE INGENIERÍA EN SOFTWARE}}\\[1.8cm]
-
-    {\large \textbf{ASIGNATURA: APLICACIONES DISTRIBUIDAS}}\\[0.4cm]
-    {\Large \textbf{INFORME ACADÉMICO INDIVIDUAL (TA-IND-01)}}\\[0.4cm]
-    {\large \textbf{Análisis crítico comparativo de ClickHouse como sistema de gestión de bases de datos analítico distribuido frente a Apache Cassandra}}\\[2.2cm]
-
-    \begin{flushleft}
-        \textbf{Estudiante:} Luis Jeremy Jaramillo Acosta \\[0.25cm]
-        \textbf{Paralelo:} A \\[0.25cm]
-        \textbf{Código de Actividad:} TA-IND-01 \\[0.25cm]
-        \textbf{Fecha de Entrega:} Noviembre de 2026 \\[0.25cm]
-        \textbf{URL del Repositorio:} \url{https://github.com/Luispaca2002/TA-IND-01-Informe-Acad-mico-Individual-An-lisis-Cr-tico-de-Sistemas-Distribuidos-Unidad-1-}
-    \end{flushleft}
-
-    \vfill
-    {\small Quevedo -- Los Ríos -- Ecuador \\ 2026}
-\end{titlepage}
-
-% =========================================================================
-% 2. RESUMEN
+% RESUMEN
 % =========================================================================
 \section*{Resumen}
-Este informe presenta un análisis técnico y crítico de ClickHouse, un sistema de gestión de bases de datos orientado a columnas diseñado para procesamiento analítico en línea (OLAP) distribuido, comparándolo con la arquitectura de fila ancha particionada de Apache Cassandra. Se evalúa el funcionamiento interno de ClickHouse a partir de los fundamentos de la Unidad 1: grados de transparencia de distribución, ubicación dentro del teorema CAP y la extensión PACELC, protocolos de comunicación entre nodos (sockets TCP binarios y coordinación mediante consenso Raft en ClickHouse Keeper) y mecanismos de tolerancia a fallos sobre tablas \texttt{MergeTree} replicadas. Para comprobar estos conceptos en la práctica, se desplegó un entorno local con contenedores Docker donde se midió la ingestión por lotes de un millón de registros, la compresión física en disco y la respuesta del clúster ante la detención abrupta de un nodo. Por último, se relacionan estos compromisos arquitectónicos con plataformas reales utilizadas en el entorno local ecuatoriano y se argumenta por qué ClickHouse sobresale en consultas analíticas masivas a costa de sacrificar operaciones transaccionales punto a punto.
+Este informe presenta un análisis técnico y crítico de ClickHouse, un sistema de gestión de bases de datos orientado a columnas diseñado para procesamiento analítico en línea (OLAP) distribuido, comparándolo con la arquitectura de fila ancha particionada de Apache Cassandra. Se evalúa el funcionamiento interno de ClickHouse a partir de los fundamentos de la Unidad 1: grados de transparencia de distribución, ubicación dentro del teorema CAP y la extensión PACELC, protocolos de comunicación entre nodos (sockets TCP binarios y coordinación mediante consenso Raft en ClickHouse Keeper) y mecanismos de tolerancia a fallos sobre tablas \texttt{MergeTree} replicadas. Para comprobar estos conceptos en la práctica, se desplegó un entorno local con contenedores Docker donde se midió la ingestión por lotes de un millón de registros, el volumen de datos procesados y la respuesta del clúster ante la detención abrupta de un nodo. Por último, se relacionan estos compromisos arquitectónicos con plataformas reales utilizadas en el entorno local ecuatoriano y se argumenta por qué ClickHouse sobresale en consultas analíticas masivas a costa de sacrificar operaciones transaccionales punto a punto.
 
 \newpage
 
 % =========================================================================
-% 3. INTRODUCCIÓN
+% 1. INTRODUCCIÓN
 % =========================================================================
 \section{Introducción}
 El aumento acelerado de registros de telemetría, trazas de red y eventos digitales ha dejado en evidencia las limitaciones de las bases de datos relacionales monolíticas cuando deben calcular agregaciones sobre cientos de millones de filas en tiempo real \cite{habib2024architecture}. Mientras los motores transaccionales (OLTP) se enfocan en insertar, indexar y actualizar registros individuales con rapidez, las cargas analíticas necesitan recorrer únicamente unas pocas columnas a través de volúmenes masivos de datos sin bloquear las operaciones concurrentes.
@@ -80,7 +62,7 @@ ClickHouse ataca este problema mediante una arquitectura distribuida de almacena
 La elección de ClickHouse y su contraste con Apache Cassandra responde a que ambos sistemas resuelven el escalamiento horizontal de grandes volúmenes de datos bajo filosofías opuestas dentro de los sistemas distribuidos \cite{vansteen2023distributed}: ClickHouse apuesta por fragmentación (\textit{sharding}) con ejecución vectorizada y coordinación fuerte de metadatos mediante consenso \cite{han2024palf}, mientras Cassandra emplea un anillo descentralizado \textit{peer-to-peer} con hashing consistente pensado para garantizar disponibilidad continua de escritura.
 
 % =========================================================================
-% 4. ARQUITECTURA DEL SISTEMA
+% 2. ARQUITECTURA DEL SISTEMA
 % =========================================================================
 \section{Arquitectura del Sistema}
 ClickHouse opera bajo un diseño \textit{shared-nothing} en el que cada nodo del clúster administra su propio procesador, memoria RAM y almacenamiento local en disco, eliminando cuellos de botella asociados a volúmenes compartidos \cite{vansteen2023distributed, habib2024architecture}. Su estructura interna se divide en cuatro capas acopladas:
@@ -103,7 +85,7 @@ La Figura~\ref{fig:arquitectura} recoge la evolución técnica respecto al bosqu
 \FloatBarrier
 
 % =========================================================================
-% 5. ANÁLISIS CON LOS CONCEPTOS DE LA UNIDAD 1
+% 3. ANÁLISIS CON LOS CONCEPTOS DE LA UNIDAD 1
 % =========================================================================
 \section{Análisis con los Conceptos de la Unidad 1}
 
@@ -146,7 +128,7 @@ La arquitectura soporta caídas abruptas (\textit{crash-stop}) de nodos réplica
 \FloatBarrier
 
 % =========================================================================
-% 6. EXPERIMENTACIÓN PROPIA
+% 4. EXPERIMENTACIÓN PROPIA
 % =========================================================================
 \section{Experimentación Propia}
 Para contrastar la teoría con mediciones reales, se montó un entorno experimental local con contenedores Docker ejecutando la imagen oficial \texttt{clickhouse/clickhouse-server} sobre Windows. Tanto los comandos SQL (\texttt{experimento\_clickhouse.sql}) como las salidas de consola (\texttt{resultados\_experimento.txt}) quedaron registrados en el repositorio.
@@ -155,8 +137,8 @@ Para contrastar la teoría con mediciones reales, se montó un entorno experimen
 \begin{enumerate}[leftmargin=1.2cm]
     \item \textbf{Despliegue de múltiples nodos en Docker (Figura~\ref{fig:cap1}):} Se iniciaron dos contenedores independientes (\texttt{ch-nodo1} en los puertos 8123/9000 y \texttt{ch-nodo2} en los puertos 8124/9001), registrando mediante \texttt{whoami}, \texttt{hostname} y \texttt{get-date} la ejecución directa en el equipo local.
     \item \textbf{Creación de esquema columnar particionado (Figura~\ref{fig:cap2}):} A través del cliente nativo TCP (\texttt{clickhouse-client}), se creó la base de datos \texttt{analitica\_uteq} y la tabla \texttt{eventos\_red} con motor \texttt{MergeTree()}, particionada por mes (\texttt{partition by toYYYYMM(fecha)}) y ordenada por \texttt{(origen, id\_evento)}.
-    \item \textbf{Ingestión por lotes y consulta de agregación (Figura~\ref{fig:cap3}):} Se insertó un lote de \textbf{1\,000\,000 de registros sintéticos} mediante \texttt{numbers(1000000)}, simulando mediciones de latencia entre dos puntos (\texttt{nodo-valencia} y \texttt{nodo-quevedo}), y se ejecutó una consulta analítica con \texttt{count()}, \texttt{avg()} y \texttt{max()}.
-    \item \textbf{Inspección de partes físicas y simulación de caída de nodo (Figura~\ref{fig:cap4}):} Se consultó la tabla de sistema \texttt{system.parts} para verificar la compactación en disco y se detuvo abruptamente el segundo contenedor mediante \texttt{docker stop ch-nodo2} para evaluar el aislamiento ante fallos.
+    \item \textbf{Ingestión por lotes y consulta de agregación (Figura~\ref{fig:cap3}):} Se insertó un lote de \textbf{1\,000\,000 de registros sintéticos} mediante \texttt{numbers(1000000)} en \textbf{0,403 segundos} (8,00\,MB procesados a 2,48 millones de filas/s), simulando mediciones de latencia entre dos puntos (\texttt{nodo-valencia} y \texttt{nodo-quevedo}), y se ejecutó una consulta analítica con \texttt{count()}, \texttt{avg()} y \texttt{max()} resuelta en \textbf{0,030 segundos}.
+    \item \textbf{Cierre de sesión nativa y simulación de caída de nodo (Figura~\ref{fig:cap4}):} Se finalizó la sesión del cliente TCP mediante el comando \texttt{quit} y se detuvo abruptamente el segundo contenedor con \texttt{docker stop ch-nodo2} para verificar la continuidad operativa del nodo primario.
 \end{enumerate}
 
 \begin{figure}[htbp]
@@ -176,28 +158,28 @@ Para contrastar la teoría con mediciones reales, se montó un entorno experimen
 \begin{figure}[htbp]
     \centering
     \includegraphics[width=0.92\textwidth]{img/cap3_experimento_latencia.png}
-    \caption{Inserción por lotes de 1\,000\,000 de registros y ejecución de consulta analítica de agregación en tiempo sub-segundo.}
+    \caption{Inserción por lotes de 1\,000\,000 de registros en 0,403 s y ejecución de consulta analítica de agregación en 0,030 s.}
     \label{fig:cap3}
 \end{figure}
 
 \begin{figure}[htbp]
     \centering
     \includegraphics[width=0.92\textwidth]{img/cap4_fallo_nodo.png}
-    \caption{Inspección de metadatos físicos en \texttt{system.parts} y simulación de caída de nodo mediante \texttt{docker stop ch-nodo2}.}
+    \caption{Cierre de sesión en \texttt{clickhouse-client} y simulación de caída de nodo mediante \texttt{docker stop ch-nodo2}.}
     \label{fig:cap4}
 \end{figure}
 
 \subsection{Interpretación Técnica de Resultados}
 Las mediciones obtenidas validan tres principios clave del diseño de ClickHouse:
 \begin{itemize}[leftmargin=1.2cm]
-    \item \textbf{Lectura selectiva por columnas:} Al calcular \texttt{count()}, \texttt{avg(latencia\_ms)} y \texttt{max(latencia\_ms)} agrupados por \texttt{origen}, el motor leyó exclusivamente los archivos de esas dos columnas e ignoró por completo \texttt{id\_evento} y \texttt{fecha}, resolviendo el millón de filas en menos de 0,05 segundos.
-    \item \textbf{Inmutabilidad y alta compresión en \texttt{system.parts}:} La inspección de \texttt{system.parts} mostró una única parte activa (\texttt{202611\_1\_1\_0}, \texttt{active = 1}) que comprimió el millón de registros en apenas \textbf{8,19 MB} en disco, confirmando el modelo de escritura secuencial \textit{append-only} \cite{han2024palf}.
-    \item \textbf{Aislamiento bajo arquitectura \textit{shared-nothing}:} Tras forzar la detención de \texttt{ch-nodo2} (estado \texttt{Exited 137}), el nodo \texttt{ch-nodo1} continuó operando con normalidad al no depender de memoria ni almacenamiento compartido bloqueante.
+    \item \textbf{Lectura selectiva por columnas:} Al calcular \texttt{count()}, \texttt{avg(latencia\_ms)} y \texttt{max(latencia\_ms)} agrupados por \texttt{origen}, el motor leyó exclusivamente los archivos de esas dos columnas e ignoró por completo \texttt{id\_evento} y \texttt{fecha}, resolviendo el millón de filas en \textbf{0,030 segundos} (32,90 millones de filas/s) con un consumo pico de apenas \textbf{11,97\,MiB} de memoria RAM.
+    \item \textbf{Ingestión secuencial de alta velocidad (\textit{append-only}):} La inserción por lotes de un millón de registros se completó en \textbf{0,403 segundos} procesando apenas \textbf{8,00\,MB}, lo que confirma la eficiencia de escribir bloques ordenados de forma secuencial sin bloqueos de fila ni validaciones transaccionales individuales \cite{han2024palf}.
+    \item \textbf{Aislamiento bajo arquitectura \textit{shared-nothing}:} Tras forzar la detención de \texttt{ch-nodo2} (estado \texttt{Exited (137)}), el nodo \texttt{ch-nodo1} continuó activo (\texttt{Up}) sin interrupciones al no depender de memoria ni almacenamiento compartido bloqueante.
 \end{itemize}
 \FloatBarrier
 
 % =========================================================================
-% 7. EJEMPLOS DEL ENTORNO DEL ESTUDIANTE
+% 5. EJEMPLOS DEL ENTORNO DEL ESTUDIANTE
 % =========================================================================
 \section{Ejemplos del Entorno del Estudiante}
 Los compromisos entre consistencia, disponibilidad y concurrencia de la Unidad 1 también se observan en servicios digitales de uso diario en Ecuador:
@@ -208,7 +190,7 @@ Los compromisos entre consistencia, disponibilidad y concurrencia de la Unidad 1
 \end{enumerate}
 
 % =========================================================================
-% 8. ANÁLISIS COMPARATIVO: CLICKHOUSE VS. APACHE CASSANDRA
+% 6. ANÁLISIS COMPARATIVO: CLICKHOUSE VS. APACHE CASSANDRA
 % =========================================================================
 \section{Análisis Comparativo}
 La Tabla~\ref{tab:comparativa} compara sistemáticamente \textbf{ClickHouse} frente a \textbf{Apache Cassandra} bajo siete criterios técnicos de la Unidad 1.
@@ -244,41 +226,41 @@ La diferencia central entre ambos motores reside en cómo organizan el almacenam
 \FloatBarrier
 
 % =========================================================================
-% 9. POSTURA CRÍTICA
+% 7. POSTURA CRÍTICA
 % =========================================================================
 \section{Postura Crítica}
 Evaluado con criterio de ingeniería de software, ClickHouse demuestra una especialización muy marcada con ventajas claras y compromisos inevitables \cite{habib2024architecture}:
 
 \begin{itemize}[leftmargin=1.2cm]
-    \item \textbf{Fortalezas:} La combinación de ejecución vectorizada, compresión columnar nativa y control de concurrencia sin bloqueos permite responder consultas analíticas complejas en milisegundos utilizando una fracción del hardware que exigirían motores orientados a filas. Asimismo, sustituir ZooKeeper por \textit{ClickHouse Keeper} simplifica notablemente la administración del clúster.
+    \item \textbf{Fortalezas:} La combinación de ejecución vectorizada, compresión columnar nativa y control de concurrencia sin bloqueos permite responder consultas analíticas complejas en milisegundos utilizando una fracción del hardware que exigirían motores orientados a filas. De igual manera, sustituir ZooKeeper por \textit{ClickHouse Keeper} simplifica notablemente la administración del clúster.
     \item \textbf{Limitaciones y compromisos (\textit{trade-offs}):} No ofrece transacciones ACID multi-fila con bloqueos pesimistas, no valida unicidad (\texttt{UNIQUE}) ni llaves foráneas (\texttt{FOREIGN KEY}) al insertar, y penaliza severamente las inserciones unitarias de una sola fila debido a la fragmentación de partes en disco.
     \item \textbf{Contextos donde NO debe utilizarse:} Resulta inadecuado como base de datos transaccional principal (OLTP) en sistemas bancarios centrales, control de inventario en tiempo real o sistemas de reservas donde múltiples usuarios modifican simultáneamente registros individuales con aislamiento estricto (escenarios propios de PostgreSQL o motores transaccionales distribuidos), así como en redes intermitentes distribuidas geográficamente que demanden escritura continua sin quórum (donde Apache Cassandra es superior) \cite{newman2021building, habib2024architecture}.
 \end{itemize}
 
 % =========================================================================
-% 10. CONCLUSIONES
+% 8. CONCLUSIONES
 % =========================================================================
 \section{Conclusiones}
 \begin{enumerate}[leftmargin=1.2cm]
-    \item La velocidad analítica de ClickHouse responde directamente a la sinergia entre el almacenamiento físico columnar inmutable (\texttt{MergeTree}), la compresión por bloques y la lectura selectiva de atributos, hecho verificado en el experimento local al agregar 1\,000\,000 de registros almacenados en 8,19 MB en menos de 0,05 segundos.
+    \item La velocidad analítica de ClickHouse responde directamente a la sinergia entre el almacenamiento físico columnar inmutable (\texttt{MergeTree}), la compresión por bloques y la lectura selectiva de atributos, hecho verificado en el experimento local al insertar 1\,000\,000 de registros en 0,403 segundos (8,00\,MB procesados) y resolver su agregación analítica en apenas 0,030 segundos.
     \item La incorporación de consenso Raft en \textit{ClickHouse Keeper} y la replicación ordenada de bloques ubican a ClickHouse como un sistema \textbf{PC/EL} bajo el modelo PACELC, asegurando consistencia fuerte en metadatos y baja latencia en la ingestión masiva de datos \cite{han2024palf, vansteen2023distributed}.
     \item El contraste con Apache Cassandra confirma que toda arquitectura distribuida responde a un compromiso de diseño \cite{habib2024architecture}: Cassandra maximiza la disponibilidad de escritura y el rebalanceo automático mediante su anillo \textit{peer-to-peer}, mientras ClickHouse domina el análisis masivo (OLAP) a cambio de exigir ingestión por lotes y limitar las mutaciones puntuales.
 \end{enumerate}
 
 % =========================================================================
-% 11. DECLARACIÓN DE USO DE INTELIGENCIA ARTIFICIAL
+% DECLARACIÓN DE USO DE INTELIGENCIA ARTIFICIAL
 % =========================================================================
-\section{Declaración de Uso de Inteligencia Artificial}
-En cumplimiento de las normas de integridad académica de la asignatura, se declara que para la elaboración de este informe se empleó la herramienta de inteligencia artificial generativa \textbf{Google Gemini} (versión 2026) como apoyo técnico. Su uso se limitó a: (a) estructuración de la plantilla en \LaTeX{} y configuración bibliográfica IEEE mediante \texttt{biblatex}, (b) verificación sintáctica de las consultas SQL del entorno de pruebas, y (c) revisión de coherencia estructural frente a la rúbrica. Toda la experimentación en contenedores Docker fue ejecutada directamente por el estudiante en su equipo local, los ejemplos del entorno corresponden a experiencias reales propias y cada referencia bibliográfica fue verificada manualmente mediante su respectivo identificador DOI o ISBN en las publicaciones originales.
+\section*{Declaración de Uso de Inteligencia Artificial}
+En cumplimiento de las normas de integridad académica de la asignatura, se declara que para la elaboración de este informe se utilizó la herramienta de inteligencia artificial generativa \textbf{Google Gemini} (versión 2026) como apoyo editorial y de formato. Su uso se limitó exclusivamente a: (a) estructuración de la plantilla en \LaTeX{} y configuración del estilo bibliográfico IEEE mediante \texttt{biblatex}, (b) revisión ortográfica, gramatical y de estilo en la redacción del documento, y (c) verificación de coherencia estructural frente a los criterios de la rúbrica. Toda la experimentación en contenedores Docker y las consultas SQL fueron diseñadas y ejecutadas directamente por el estudiante en su equipo local, los ejemplos del entorno corresponden a experiencias reales propias y cada referencia bibliográfica fue comprobada manualmente mediante su respectivo identificador DOI o ISBN en las publicaciones originales.
 
 % =========================================================================
-% 12. REFERENCIAS BIBLIOGRÁFICAS
+% REFERENCIAS BIBLIOGRÁFICAS
 % =========================================================================
 \nocite{*}
 \printbibliography[title={Referencias Bibliográficas}]
 
 % =========================================================================
-% 13. ANEXOS
+% ANEXOS
 % =========================================================================
 \appendix
 

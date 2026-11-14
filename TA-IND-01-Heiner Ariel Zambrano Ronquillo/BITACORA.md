@@ -162,15 +162,18 @@
     4. *Shin & Kim (2023)* — Symmetry, pág. 2 (`capturas/anexo_b_04_shin2023_p2_erasure_coding_hdfs.png`): Sobrecarga computacional y latencia matricial de Reed-Solomon en HDFS vs replicación directa.
     5. *Makris et al. (2022)* — Applied Sciences, pág. 6 (`capturas/anexo_b_05_makris2022_p6_minio_rendimiento_ram.png`): Huella mínima de memoria RAM (<300 MB) y alto rendimiento transaccional de MinIO en entornos perimetrales (*edge*).
   * Asimismo, se consolidó la transición a artículos 100% Open Access (sustituyendo fuentes con barrera de pago de ACM, Elsevier e IEEE por Gadban et al., Makris et al. y Shin & Kim en MDPI), asegurando la verificación de DOIs oficiales y la disponibilidad permanente de los textos completos en el repositorio.
-    1. Conexión del cliente `mc` a `minio1` (Coordinador Inicial) y conmutación (*failover*) a `minio2`.
-    2. Dispersión RPC paralela directa desde `minio1` hacia los nodos pares (`minio2` con Dato $D_2$, `minio3` con Paridad $P_1$ y `minio4` con Paridad $P_2$).
-    3. Malla interna de red Docker bridge (`minio-distributed-net`) y panel de resiliencia con quórum $EC:2$ y auto-recuperación (*healing*).
-  * Estructuración formal y académica de `resultado_experimento.txt` consolidando los registros reales de PowerShell por fases cronológicas (despliegue, topología EC:2, ingesta con metadatos atómicos `xl.meta`, inyección de fallos, conmutación y auto-recuperación `healing`), tabla sintética de métricas y deducciones analíticas de la Unidad 1.
-  * Recompilación y verificación de `informe/main.pdf` asegurando 0 errores de sintaxis y diagramación nítida a 7 páginas.
+* **20:00 - 21:00 | Modelado y Creación del Diagrama de Arquitectura en Draw.io:**
+  * Se trabajó en la herramienta Draw.io diseñando la arquitectura formal del clúster MinIO distribuido (`figura/diagrama_MINIO.drawio.xml`), pasando en limpio y perfeccionando el bosquejo preliminar dibujado a mano alzada.
+  * Se modelaron los 4 nodos contenedores (`minio1` a `minio4`), la red bridge `minio-distributed-net`, el flujo de llamadas RPC síncronas entre nodos, la división de bloques de datos y paridad ($EC:2$) y la ruta de conmutación de cliente (*failover*) hacia `minio2` ante la caída del coordinador inicial.
+  * Se exportó el diagrama final en formato de imagen como `figura/MINIO.drawio.png` y se guardó la captura del espacio de trabajo en Draw.io (`figura/Captura de pantalla 2026-11-13 225541.png`) como constancia del modelado gráfico.
 
-* **22:00 - 22:15 | Integración en LaTeX y Compilación Limpia del Anexo B:**
-  * Integración de las 5 páginas subrayadas en `informe/main.tex` bajo el **Anexo B**, empleando el formato vertical de página completa con la macro `\evidencialectura`.
-  * Compilación integral con pdfLaTeX y Biber, asegurando 0 errores, 0 advertencias y una presentación impecable a 26 páginas.
+* **21:00 - 21:50 | Estructuración del Documento de Resultados y Vinculación del Diagrama:**
+  * Organización de `experimento/resultado_experimento.txt` consolidando las salidas reales obtenidas en la terminal de PowerShell en las distintas fases del experimento (despliegue de nodos, ingesta con metadatos `xl.meta`, inyección de fallos, conmutación y auto-recuperación de nodos).
+  * Inclusión del diagrama formal (`figura/MINIO.drawio.png`) en la Sección 4 de `informe/main.tex`, redactando la explicación técnica del flujo de comunicación y la topología simétrica *Shared-Nothing*.
+
+* **22:00 - 22:30 | Integración de Evidencias en el Anexo B y Compilación Final:**
+  * Inserción de las 5 páginas subrayadas de los artículos científicos analizados en el Anexo B de `informe/main.tex` mediante formato vertical legible.
+  * Compilación integral del documento final en PDF (`informe/main.pdf`) con pdfLaTeX y Biber, verificando que los diagramas, capturas de terminal, evidencias de lectura y referencias queden correctamente alineados.
 
 ### 2. Problemas Encontrados y Soluciones Aplicadas
 * **Ruta de archivo no encontrada dentro del contenedor de `mc`:**
@@ -195,6 +198,7 @@
 * **Fase de redacción y estructuración académica en LaTeX (13:25 a 16:00):** 2 horas y 35 minutos.
 * **Fase experimental vespertina de tolerancia a fallos y auto-recuperación (16:20 a 16:32):** 20 minutos.
 * **Fase de lectura crítica durante el corte de luz, auditoría Open Access y marcado de Anexo B (17:00 a 18:00):** 1 hora.
-* **Fase de renderizado formal V2 y estructuración de resultados (21:00 a 21:50):** 50 minutos.
-* **Fase de integración en LaTeX y compilación limpia del Anexo B (22:00 a 22:15):** 15 minutos.
-* **Total acumulado Sesión 2:** 9 horas y 15 minutos.
+* **Fase de modelado del diagrama de arquitectura en Draw.io (20:00 a 21:00):** 1 hora.
+* **Fase de estructuración de resultados y vinculación en informe (21:00 a 21:50):** 50 minutos.
+* **Fase de integración de evidencias en Anexo B y compilación final (22:00 a 22:30):** 30 minutos.
+* **Total acumulado Sesión 2:** 10 horas y 30 minutos.
