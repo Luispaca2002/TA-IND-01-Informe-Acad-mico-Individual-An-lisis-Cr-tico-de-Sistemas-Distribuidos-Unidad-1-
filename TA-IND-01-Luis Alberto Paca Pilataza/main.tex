@@ -73,4 +73,33 @@ Para comprobar empíricamente la tolerancia a fallos, se ejecutó un experimento
 
 La observación del estado del clúster desde \texttt{mongo2} demostró que el sistema detectó la falta de \textit{heartbeats}. En un lapso inferior a 10 segundos, los nodos secundarios iniciaron una elección y promovieron a uno de ellos como nuevo líder, evidenciando la capacidad de auto-recuperación del sistema.
 
+% 7. Ejemplos del entorno del estudiante
+\section{Ejemplos del Entorno Local}
+Los dilemas de los sistemas distribuidos son claramente observables en plataformas cotidianas de alta concurrencia utilizadas por la comunidad estudiantil. Por ejemplo, en el portal web del programa \textbf{Jóvenes en Acción}, durante las fechas límite de registro y consulta de asignaciones, la plataforma sufre cuellos de botella severos debido a la avalancha de solicitudes concurrentes. Ante este volumen, el sistema distribuido subyacente enfrenta dificultades para sincronizar el estado de las postulaciones sin degradar la experiencia de usuario, viéndose forzado a encolar peticiones o limitar temporalmente el acceso para evitar inconsistencias y duplicidad de registros en su base de datos.
+
+Otro caso se observa en la aplicación móvil de \textbf{Banco Pichincha}. Cuando se realiza una transferencia, la plataforma prefiere bloquear temporalmente la operación (sacrificar disponibilidad) si no puede asegurar que el saldo se actualice de manera síncrona (priorizar consistencia). Es un claro ejemplo de un diseño CP en la vida real.
+
+% 8. Análisis comparativo
+\section{Análisis Comparativo}
+Se establece una comparación con Apache Cassandra, otra base de datos NoSQL fundamentada en principios distintos (Tabla 1).
+
+\begin{table}[h]
+\centering
+\caption{Comparación arquitectónica entre MongoDB y Apache Cassandra}
+\vspace{0.2cm}
+\begin{tabular}{@{}p{3cm}p{6cm}p{6cm}@{}}
+\toprule
+\textbf{Criterio} & \textbf{MongoDB} & \textbf{Apache Cassandra} \\ \midrule
+\textbf{Teorema CAP} & CP (Consistencia y Partición). & AP (Disponibilidad y Partición). \\ 
+\textbf{Arquitectura} & Primario-Secundario (Asimétrica). & Peer-to-Peer / Anillo (Simétrica). \\ 
+\textbf{Modelo de datos} & Orientado a Documentos (BSON). & Orientado a Columnas Amplias. \\ 
+\textbf{Tolerancia a fallos} & Algoritmo de elección de líder. & Quórum y \textit{Hinted Handoff}. \\ 
+\textbf{Caso de uso ideal} & Catálogos y transacciones complejas. & Analítica de series de tiempo. \\ \bottomrule
+\end{tabular}
+\end{table}
+
+% 9. Postura crítica
+\section{Postura Crítica}
+MongoDB presenta un \textit{trade-off} técnico evidente: al centralizar escrituras en un único primario, evita conflictos y garantiza consistencia fuerte. Sin embargo, el tiempo de elección de un nuevo líder (10 segundos) implica una ventana de indisponibilidad inaceptable para aplicaciones de ultra-baja latencia. Por ende, es una herramienta especializada para dominios donde la integridad prima sobre la disponibilidad extrema.
+
 \end{document}
