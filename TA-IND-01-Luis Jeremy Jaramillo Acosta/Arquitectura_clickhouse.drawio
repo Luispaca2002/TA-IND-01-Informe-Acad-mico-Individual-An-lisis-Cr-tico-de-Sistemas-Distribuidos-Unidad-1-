@@ -104,19 +104,19 @@
         <mxCell id="DcEXRKMtKK6CW7URNC0_-14" parent="1" style="shape=umlFrame;whiteSpace=wrap;html=1;pointerEvents=0;" value="frame" vertex="1">
           <mxGeometry height="80" width="170" x="260" y="640" as="geometry" />
         </mxCell>
-        <mxCell id="DcEXRKMtKK6CW7URNC0_-15" edge="1" parent="1" style="endArrow=open;endSize=12;dashed=1;html=1;rounded=0;defaultLabelBackgroundColor=page;labelPadding=0 4;" value="Sincronica">
+        <mxCell id="DcEXRKMtKK6CW7URNC0_-15" edge="1" parent="1" style="endArrow=open;endSize=12;dashed=1;html=1;rounded=0;defaultLabelBackgroundColor=page;labelPadding=0 4;" value="Asincrona">
           <mxGeometry relative="1" width="160" as="geometry">
-            <mxPoint x="330" y="679.5" as="sourcePoint" />
-            <mxPoint x="430" y="679.5" as="targetPoint" />
+            <mxPoint x="320" y="680" as="sourcePoint" />
+            <mxPoint x="420" y="680" as="targetPoint" />
           </mxGeometry>
         </mxCell>
         <mxCell id="DcEXRKMtKK6CW7URNC0_-16" edge="1" parent="1" style="endArrow=block;endFill=1;html=1;edgeStyle=orthogonalEdgeStyle;align=left;verticalAlign=top;rounded=0;defaultLabelBackgroundColor=page;labelPadding=0 4;" value="">
           <mxGeometry relative="1" x="-0.6" as="geometry">
-            <mxPoint x="330" y="700" as="sourcePoint" />
-            <mxPoint x="430" y="700" as="targetPoint" />
+            <mxPoint x="320" y="700" as="sourcePoint" />
+            <mxPoint x="420" y="700" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="DcEXRKMtKK6CW7URNC0_-18" connectable="0" parent="DcEXRKMtKK6CW7URNC0_-16" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];inheritText=1;defaultLabelBackgroundColor=page;labelPadding=0 4;" value="Asincronica&amp;nbsp;" vertex="1">
+        <mxCell id="DcEXRKMtKK6CW7URNC0_-18" connectable="0" parent="DcEXRKMtKK6CW7URNC0_-16" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];inheritText=1;defaultLabelBackgroundColor=page;labelPadding=0 4;" value="Sincrona" vertex="1">
           <mxGeometry relative="1" x="0.3" y="2" as="geometry">
             <mxPoint x="-15" y="2" as="offset" />
           </mxGeometry>
@@ -124,7 +124,7 @@
         <mxCell id="DcEXRKMtKK6CW7URNC0_-19" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" value="Leyenda" vertex="1">
           <mxGeometry height="30" width="60" x="340" y="640" as="geometry" />
         </mxCell>
-        <mxCell id="DcEXRKMtKK6CW7URNC0_-20" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" value="&lt;font style=&quot;font-size: 24px;&quot;&gt;Arquitectura Distribuida en ClickHouse&amp;nbsp; (Shared - Nothing&lt;/font&gt;" vertex="1">
+        <mxCell id="DcEXRKMtKK6CW7URNC0_-20" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" value="&lt;font style=&quot;font-size: 24px;&quot;&gt;Arquitectura Distribuida en ClickHouse&amp;nbsp; (Shared - Nothing)&lt;/font&gt;" vertex="1">
           <mxGeometry height="30" width="560" x="-440" y="40" as="geometry" />
         </mxCell>
       </root>
