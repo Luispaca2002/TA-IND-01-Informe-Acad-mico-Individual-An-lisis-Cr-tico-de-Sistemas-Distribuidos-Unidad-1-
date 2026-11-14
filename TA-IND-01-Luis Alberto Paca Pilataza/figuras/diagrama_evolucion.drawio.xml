@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net">
+  <diagram name="Página-1" id="NNkFiqLAICZMsUmcyxg-">
+    <mxGraphModel dx="959" dy="567" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="group" parent="1" style="swimlane;whiteSpace=wrap;html=1;dashed=1;startSize=23;fillColor=#f5f5f5;strokeColor=#666666;" value="Red Virtual Docker (mongo-cluster)" vertex="1">
+          <mxGeometry height="320" width="560" x="120" y="200" as="geometry">
+            <mxRectangle height="30" width="240" x="120" y="200" as="alternateBounds" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="primary" parent="group" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#dae8fc;strokeColor=#6c8ebf;" value="Contenedor: mongo1&#xa;(Nodo Primario)" vertex="1">
+          <mxGeometry height="80" width="120" x="220" y="50" as="geometry" />
+        </mxCell>
+        <mxCell id="sec1" parent="group" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#f8cecc;strokeColor=#b85450;" value="Contenedor: mongo2&#xa;(Nodo Secundario)" vertex="1">
+          <mxGeometry height="80" width="120" x="50" y="200" as="geometry" />
+        </mxCell>
+        <mxCell id="sec2" parent="group" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#f8cecc;strokeColor=#b85450;" value="Contenedor: mongo3&#xa;(Nodo Secundario)" vertex="1">
+          <mxGeometry height="80" width="120" x="390" y="200" as="geometry" />
+        </mxCell>
+        <mxCell id="edge2" edge="1" parent="group" source="primary" style="endArrow=classic;html=1;exitX=0;exitY=1;exitDx=0;exitDy=-15;exitPerimeter=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;entryPerimeter=0;" target="sec1" value="Replicación asíncrona">
+          <mxGeometry height="50" relative="1" width="50" as="geometry" />
+        </mxCell>
+        <mxCell id="edge3" edge="1" parent="group" source="primary" style="endArrow=classic;html=1;exitX=1;exitY=1;exitDx=0;exitDy=-15;exitPerimeter=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;entryPerimeter=0;" target="sec2" value="Replicación asíncrona">
+          <mxGeometry height="50" relative="1" width="50" as="geometry" />
+        </mxCell>
+        <mxCell id="edge4" edge="1" parent="group" source="sec1" style="endArrow=classic;startArrow=classic;html=1;dashed=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;exitPerimeter=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;entryPerimeter=0;" target="sec2" value="Heartbeats (Elección de Líder)">
+          <mxGeometry height="50" relative="1" width="50" as="geometry" />
+        </mxCell>
+        <mxCell id="client" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" value="Host Local / Terminal&#xa;(Ejecución de experimento)" vertex="1">
+          <mxGeometry height="60" width="200" x="300" y="60" as="geometry" />
+        </mxCell>
+        <mxCell id="edge1" edge="1" parent="1" source="client" style="endArrow=classic;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;entryPerimeter=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;" target="primary" value="Lecturas / Escrituras / docker stop">
+          <mxGeometry height="50" relative="1" width="50" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

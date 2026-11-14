@@ -3,6 +3,7 @@
 \usepackage[spanish]{babel}
 \usepackage{graphicx}
 \usepackage{geometry}
+\usepackage[table]{xcolor}
 \usepackage{hyperref}
 \usepackage{booktabs}
 \usepackage[backend=biber,style=ieee]{biblatex}
@@ -82,23 +83,44 @@ Otro caso se observa en la aplicación móvil de Banco Pichincha. Cuando se real
 
 % 6. Análisis comparativo
 \section{Análisis Comparativo}
-Se establece una comparación con Apache Cassandra, otra base de datos NoSQL fundamentada en principios distintos (Tabla \ref{tab:comparacion}) \cite{gyorodi2022comparative, dubey2025performance}.
+Se establece una comparación con Apache Cassandra, otra base de datos NoSQL fundamentada en principios distintos (Tabla \ref{tab:comparativa_arquitectonica}) \cite{gyorodi2022comparative, dubey2025performance}.
 
-\begin{table}[h]
+\begin{table*}[htbp]
 \centering
-\caption{Comparación arquitectónica entre MongoDB y Apache Cassandra}
-\label{tab:comparacion}
-\vspace{0.2cm}
-\begin{tabular}{@{}p{3cm}p{6cm}p{6cm}@{}}
-\toprule
-\textbf{Criterio} & \textbf{MongoDB} & \textbf{Apache Cassandra} \\ \midrule
-\textbf{Teorema CAP} & CP (Consistencia y Partición). & AP (Disponibilidad y Partición). \\ 
-\textbf{Arquitectura} & Primario-Secundario (Asimétrica). & Peer-to-Peer / Anillo (Simétrica). \\ 
-\textbf{Modelo de datos} & Orientado a Documentos (BSON). & Orientado a Columnas Amplias. \\ 
-\textbf{Tolerancia a fallos} & Algoritmo de elección de líder. & Quórum y \textit{Hinted Handoff}. \\ 
-\textbf{Caso de uso ideal} & Catálogos y transacciones complejas. & Analítica de series de tiempo. \\ \bottomrule
+\caption{Análisis Arquitectónico de Sistemas Distribuidos: MongoDB vs. Apache Cassandra}
+\label{tab:comparativa_arquitectonica}
+\renewcommand{\arraystretch}{1.4} % Aumenta ligeramente el espaciado vertical para mejor legibilidad
+\begin{tabular}{|p{3.5cm}|p{6.2cm}|p{6.2cm}|}
+\hline
+\rowcolor[HTML]{EFEFEF} % Opcional: sombrea la cabecera si usas el paquete colortbl/xcolor
+\textbf{Criterio Arquitectónico} & \textbf{MongoDB} & \textbf{Apache Cassandra} \\ \hline
+
+\textbf{Clasificación Teorema CAP} & 
+\textbf{CP}: Prioriza Consistencia y Tolerancia a Particiones. Si el nodo primario cae, el sistema suspende escrituras hasta elegir uno nuevo. & 
+\textbf{AP}: Prioriza Disponibilidad y Tolerancia a Particiones. Todos los nodos permanecen activos para recibir lecturas y escrituras. \\ \hline
+
+\textbf{Comportamiento PACELC} & 
+\textbf{PA/EC}: Ante una partición de red (P), elige Consistencia (C). En estado normal (E), elige Consistencia (C) sobre Latencia (L). & 
+\textbf{PA/EL}: Ante una partición de red (P), elige Disponibilidad (A). En estado normal (E), prefiere minimizar la Latencia (L). \\ \hline
+
+\textbf{Arquitectura de Replicación} & 
+\textbf{Primario-Secundario (Replica Sets)}: Centraliza las escrituras en un solo nodo. Los secundarios replican los datos del Oplog. & 
+\textbf{Peer-to-Peer (Masterless)}: Topología en anillo descentralizada mediante protocolo \textit{Gossip}. Carece de un punto único de fallo. \\ \hline
+
+\textbf{Transparencia de Fallos} & 
+\textbf{Por proceso de elección}: Los nodos secundarios detectan la desconexión y ejecutan una votación para promover al nuevo primario. & 
+\textbf{Intrínseca por enrutamiento}: Si un nodo falla, el coordinador redirige automáticamente la petición a las siguientes réplicas del anillo. \\ \hline
+
+\textbf{Manejo de Concurrencia} & 
+Bloqueos granulares a nivel de documento y control de concurrencia optimista gestionado por el motor \textit{WiredTiger}. & 
+Resolución de conflictos distribuida mediante marcas de tiempo de cliente (\textit{Last Write Wins}). \\ \hline
+
+\textbf{Estrategia de Escalabilidad} & 
+\textbf{Sharding}: Escalamiento horizontal que exige desplegar enrutadores (\textit{mongos}) y servidores de configuración. & 
+\textbf{Lineal Nativa}: Escalamiento horizontal fluido; se añaden nodos al clúster sin necesidad de reconfigurar una arquitectura central. \\ \hline
+
 \end{tabular}
-\end{table}
+\end{table*}
 
 % 9. Postura crítica
 \section{Postura Crítica}
