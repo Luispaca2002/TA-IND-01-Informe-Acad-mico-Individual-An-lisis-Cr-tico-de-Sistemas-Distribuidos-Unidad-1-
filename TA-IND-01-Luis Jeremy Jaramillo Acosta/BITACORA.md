@@ -29,3 +29,18 @@ Registro cronológico de sesiones de investigación, experimentación local en D
   - En los artículos de doble columna en inglés de IEEE Access y PVLDB fue necesario localizar los fragmentos específicos sobre consenso de bitácoras WAL, comunicación en red y consistencia de datos manteniendo visible el número de página impreso en la captura.
 - **Solución aplicada:**
   - Se encuadraron las capturas mostrando tanto el texto subrayado y comentado como el pie de página editorial de cada revista, y se verificaron todos los identificadores DOI para enlazarlos en el Anexo B de `main.tex`.
+
+---
+
+## Sesión 3 — Viernes, 13 de noviembre de 2026 (Bloque Nocturno)
+- **Tiempo dedicado:** 3 horas y 45 minutos (20:00 – 23:45)
+- **Actividades realizadas:**
+  - Actualización de identificadores DOI verificados y metadatos IEEE en `referencias.bib` junto con el desarrollo completo de las secciones y rutas de figuras en `main.tex`.
+  - Corrección de etiquetas de protocolos, puertos internos y leyenda de flujos síncronos/asíncronos en `Arquitectura_clickhouse.drawio` y `Arquitectura_clickhouse.png`.
+  - Sincronización de las métricas exactas de ejecución (`0,403 s` en inserción de 1 000 000 de filas, `8,00 MB` procesados, `0,030 s` en agregación analítica y `11,97 MiB` de RAM) entre `resultados_experimento.txt` y `main.tex`.
+  - Grabación del video de sustentación individual (3–5 minutos), publicación en YouTube en modo Oculto y registro del enlace (`https://youtu.be/R_zr359o9fU`) junto con el orden de compilación LaTeX en `README.md`.
+  - Compilación en Overleaf (`pdflatex` + `biber`) y subida de la versión final `main.pdf` (15 páginas) con bibliografía IEEE `[1]`–`[6]` y anexos.
+- **Problemas encontrados:**
+  - Las rutas relativas de la carpeta `img/` y las métricas del experimento debían coincidir exactamente con las capturas de consola y el archivo `.bib` para compilar sin advertencias en Overleaf.
+- **Solución aplicada:**
+  - Se validaron todas las rutas gráficas en `main.tex`, se ajustaron los valores numéricos de la Sección 4 y Conclusiones contra las capturas reales y se verificó el PDF compilado de 15 páginas.
