@@ -5,6 +5,7 @@
 \usepackage{geometry}
 \usepackage[table]{xcolor}
 \usepackage{hyperref}
+\usepackage{xurl}
 \usepackage{booktabs}
 \usepackage[backend=biber,style=ieee]{biblatex}
 
@@ -31,7 +32,7 @@
     \textbf{Fecha:} 13 de noviembre de 2026\\
     \vspace{2cm}
     \textbf{Repositorio GitHub:}\\
-    \url{https://github.com/Luispaca2002/TA-IND-01-Informe-Acad-mico-Individual-An-lisis-Cr-tico-de-Sistemas-Distribuidos-Unidad-1-}
+    {\tiny \url{https://github.com/Luispaca2002/TA-IND-01-Informe-Acad-mico-Individual-An-lisis-Cr-tico-de-Sistemas-Distribuidos-Unidad-1-}}
     \vfill
 \end{titlepage}
 
@@ -71,9 +72,16 @@ El sistema tolera fallos de hardware automatizando la recuperación sin interven
 
 % 4. Experimentación propia
 \section{Experimentación Propia}
-Para comprobar empíricamente la tolerancia a fallos, se ejecutó un experimento local utilizando contenedores. Se desplegó una red virtual aislada (\texttt{mongo-cluster}) y se levantaron tres nodos de MongoDB (\texttt{mongo1}, \texttt{mongo2}, \texttt{mongo3}). Tras inicializar el \textit{Replica Set} y confirmar que \texttt{mongo1} asumió el rol de \textit{Primary}, se simuló una caída catastrófica deteniendo abruptamente el contenedor principal (\texttt{docker stop mongo1}). 
+Para comprobar empíricamente la tolerancia a fallos, se ejecutó un experimento local utilizando contenedores. Se desplegó una red virtual aislada (\texttt{mongo-cluster}) y se levantaron tres nodos de MongoDB (\texttt{mongo1}, \texttt{mongo2}, \texttt{mongo3}). Tras inicializar el \textit{Replica Set} y confirmar que \texttt{mongo1} asumió el rol de \textit{Primary}, se simuló una caída catastrófica deteniendo abruptamente el contenedor principal (\texttt{docker stop mongo1}).
 
-La observación del estado del clúster desde \texttt{mongo2} demostró que el sistema detectó la falta de \textit{heartbeats}. En un lapso inferior a 10 segundos, los nodos secundarios iniciaron una elección y promovieron a uno de ellos como nuevo líder, evidenciando la capacidad de auto-recuperación del sistema.
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.55\linewidth]{figuras/diagrama_evolucion.draw.png}
+    \caption{Arquitectura de replicación y tolerancia a fallos del Replica Set de MongoDB desplegado en la red virtual de Docker.}
+    \label{fig:arquitectura_docker}
+\end{figure}
+
+Como se ilustra en la Figura \ref{fig:arquitectura_docker}, la observación del estado del clúster desde \texttt{mongo2} demostró que el sistema detectó la falta de \textit{heartbeats}. En un lapso inferior a 10 segundos, los nodos secundarios iniciaron una elección y promovieron a uno de ellos como nuevo líder, evidenciando la capacidad de auto-recuperación del sistema.
 
 % 5. Ejemplos del entorno local
 \section{Ejemplos del Entorno Local}
