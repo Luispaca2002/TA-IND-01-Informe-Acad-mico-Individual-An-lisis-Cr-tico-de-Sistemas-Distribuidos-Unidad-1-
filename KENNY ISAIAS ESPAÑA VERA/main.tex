@@ -20,6 +20,10 @@
 \usepackage{xurl}
 \usepackage[backend=biber,style=ieee]{biblatex}
 \addbibresource{referencias.bib}
+\setcounter{biburlnumpenalty}{100}
+\setcounter{biburlucpenalty}{100}
+\setcounter{biburllcpenalty}{100}
+\appto{\bibsetup}{\sloppy}
 \usepackage[hidelinks]{hyperref}
 
 \setstretch{1.15}
@@ -274,7 +278,7 @@ La Figura~\ref{fig:isr} muestra el estado del topic en condiciones normales. Par
 \label{fig:isr}
 \end{figure}
 
-A continuación detuve \texttt{kafka-1} con \texttt{docker stop} y consulté el clúster desde \texttt{kafka-2}, todavía indicando \texttt{kafka-1:9092} como servidor de arranque. La Figura~\ref{fig:fallo} muestra el resultado: el cliente emitió la advertencia \texttt{Couldn't resolve server kafka-1:9092 from bootstrap.servers as DNS resolution failed} y terminó con \texttt{KafkaException: Failed to create new KafkaAdminClient}, causada por \texttt{ConfigException: No resolvable bootstrap urls given in bootstrap.servers}.
+{\sloppy A continuación detuve \texttt{kafka-1} con \texttt{docker stop} y consulté el clúster desde \texttt{kafka-2}, todavía indicando \texttt{kafka-1:9092} como servidor de arranque. La Figura~\ref{fig:fallo} muestra el resultado: el cliente emitió la advertencia \texttt{Couldn't resolve server kafka-1:9092 from bootstrap.servers as DNS resolution failed} y terminó con \texttt{KafkaException: Failed to create new KafkaAdminClient}, causada por \texttt{ConfigException: No resolvable bootstrap urls given in bootstrap.servers}.\par}
 
 \begin{figure}[H]
 \centering
@@ -430,12 +434,12 @@ Realicé personalmente, sin asistencia de IA, el diseño del experimento, la eje
 
 \begin{figure}[H]
 \centering
-\IfFileExists{figuras/esquema_mano.jpg}{%
-  \includegraphics[width=0.85\textwidth]{figuras/esquema_mano.jpg}%
+\IfFileExists{figuras/esquema_mano.jpeg}{%
+  \includegraphics[width=0.85\textwidth]{figuras/esquema_mano.jpeg}%
 }{%
   \fbox{\parbox[c][9cm][c]{0.8\textwidth}{\centering Espacio reservado para \texttt{figuras/esquema\_mano.jpeg}}}%
 }
-\caption{Bosquejo inicial de la arquitectura de Apache Kafka, elaborado a mano antes de la revisión bibliográfica. Su evolución hacia la Figura~\ref{fig:arquitectura} se explica en la Sección~\ref{sec:diagrama}.}
+\caption{Bosquejo simplificado de la arquitectura de Apache Kafka, elaborado a mano con la visión general del sistema. Su evolución hacia la Figura~\ref{fig:arquitectura} se explica en la Sección~\ref{sec:diagrama}.}
 \label{fig:esquema}
 \end{figure}
 
