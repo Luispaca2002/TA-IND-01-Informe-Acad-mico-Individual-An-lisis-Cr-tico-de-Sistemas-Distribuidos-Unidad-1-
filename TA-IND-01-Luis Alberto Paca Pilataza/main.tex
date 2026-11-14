@@ -44,4 +44,33 @@ En el panorama actual de la gestión de datos a gran escala, las bases de datos 
 
 Se seleccionó este sistema de bases de datos para el presente informe técnico debido a que su mecanismo interno de \textit{Replica Set} ofrece una de las implementaciones más transparentes y comprobables empíricamente para el estudio práctico de la tolerancia a fallos, el particionamiento y los dilemas de consistencia en arquitecturas distribuidas modernas.
 
+% 4. Arquitectura del sistema
+\section{Arquitectura del Sistema}
+El pilar de la alta disponibilidad en MongoDB es el conjunto de réplicas (\textit{Replica Set}). Este clúster lógico está compuesto por un Nodo Primario (Primary), responsable exclusivo de canalizar todas las operaciones de escritura, y múltiples Nodos Secundarios (Secondary), cuyo propósito es mantener una copia exacta y en cuasi-tiempo real de los datos mediante un registro circular de operaciones denominado \textit{oplog}.
+
+Como se ilustró en el bosquejo inicial trazado a mano (ver fotografía en el Anexo A), la comunicación del sistema tiene dos direcciones claras. Hacia el exterior, fluye desde las aplicaciones cliente conectadas hacia el nodo primario. Hacia el interior, los nodos intercambian señales de control (\textit{heartbeats}) bidireccionales cada dos segundos sobre una red privada para monitorizar la salud mutua y el estado de la topología.
+
+% 5. Análisis con los conceptos de la Unidad 1
+\section{Análisis de Conceptos de la Unidad 1}
+
+\subsection{Transparencias de distribución}
+MongoDB provee un sólido nivel de \textbf{transparencia de acceso y ubicación}. Las aplicaciones cliente se conectan utilizando una única cadena de conexión; es el \textit{driver} el que oculta qué servidor físico contiene el dato, enrutando automáticamente las lecturas. Asimismo, el sistema destaca en su \textbf{transparencia de fallos}. Si un servidor colapsa, el controlador pone en pausa brevemente las transacciones y las redirige al nuevo líder sin exponer errores, haciendo el fallo invisible a nivel de interfaz.
+
+\subsection{Teorema CAP y PACELC}
+Evaluado bajo el Teorema CAP, un Replica Set de MongoDB se clasifica como un sistema \textbf{CP} (Consistencia y Tolerancia a Particiones). Ante una partición de red que aísla al primario, el sistema sacrifica la Disponibilidad: rechaza nuevas escrituras para evitar divergencia de datos hasta que se elija un nuevo líder. 
+
+Al aplicar el teorema extendido \textbf{PACELC}, su topología se describe como PA/EC. Si hay partición (P), elige consistencia (C). Sin embargo, en estado estable (E), obliga a configurar el balance entre latencia (L) y consistencia (C) utilizando la directiva \textit{Write Concern}. 
+
+\subsection{Modelos de comunicación}
+Externamente, MongoDB sigue un modelo de \textbf{cliente-servidor}, utilizando conectividad por \textit{sockets} TCP. Hacia el interior del clúster, la replicación de datos rompe con la sincronía: los nodos secundarios extraen (\textit{pull}) las actualizaciones del \textit{oplog} de forma estrictamente \textbf{asincrónica}. Esto evita que el nodo primario quede bloqueado esperando confirmaciones.
+
+\subsection{Tolerancia a fallos}
+El sistema tolera fallos de hardware automatizando la recuperación sin intervención humana usando un algoritmo basado en \textit{heartbeats}. Si un nodo secundario no recibe el "latido" del primario durante 10 segundos, declara la caída del líder y solicita votos. El clúster otorga la victoria al nodo con el \textit{oplog} más actualizado.
+
+% 6. Experimentación propia
+\section{Experimentación Propia}
+Para comprobar empíricamente la tolerancia a fallos, se ejecutó un experimento local utilizando contenedores. Se desplegó una red virtual aislada (\texttt{mongo-cluster}) y se levantaron tres nodos de MongoDB (\texttt{mongo1}, \texttt{mongo2}, \texttt{mongo3}). Tras inicializar el \textit{Replica Set} y confirmar que \texttt{mongo1} asumió el rol de \textit{Primary}, se simuló una caída catastrófica deteniendo abruptamente el contenedor principal (\texttt{docker stop mongo1}). 
+
+La observación del estado del clúster desde \texttt{mongo2} demostró que el sistema detectó la falta de \textit{heartbeats}. En un lapso inferior a 10 segundos, los nodos secundarios iniciaron una elección y promovieron a uno de ellos como nuevo líder, evidenciando la capacidad de auto-recuperación del sistema.
+
 \end{document}
