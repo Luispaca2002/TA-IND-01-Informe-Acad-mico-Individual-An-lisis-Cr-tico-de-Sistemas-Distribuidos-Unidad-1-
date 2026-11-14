@@ -9,6 +9,7 @@
 
 \geometry{top=2.5cm, bottom=2.5cm, left=2.5cm, right=2.5cm}
 \addbibresource{referencias.bib}
+\renewcommand{\tablename}{Tabla}
 
 \begin{document}
 
@@ -44,48 +45,49 @@ En el panorama actual de la gestión de datos a gran escala, las bases de datos 
 
 Se seleccionó este sistema de bases de datos para el presente informe técnico debido a que su mecanismo interno de \textit{Replica Set} ofrece una de las implementaciones más transparentes y comprobables empíricamente para el estudio práctico de la tolerancia a fallos, el particionamiento y los dilemas de consistencia en arquitecturas distribuidas modernas.
 
-% 4. Arquitectura del sistema
+% 2. Arquitectura del sistema
 \section{Arquitectura del Sistema}
-El pilar de la alta disponibilidad en MongoDB es el conjunto de réplicas (\textit{Replica Set}). Este clúster lógico está compuesto por un Nodo Primario (Primary), responsable exclusivo de canalizar todas las operaciones de escritura, y múltiples Nodos Secundarios (Secondary), cuyo propósito es mantener una copia exacta y en cuasi-tiempo real de los datos mediante un registro circular de operaciones denominado \textit{oplog}.
+El pilar de la alta disponibilidad en MongoDB es el conjunto de réplicas (\textit{Replica Set}). Este clúster lógico está compuesto por un Nodo Primario (Primary), responsable exclusivo de canalizar todas las operaciones de escritura, y múltiples Nodos Secundarios (Secondary), cuyo propósito es mantener una copia exacta y en cuasi-tiempo real de los datos mediante un registro circular de operaciones denominado \textit{oplog} \cite{schultz2025design}.
 
-Como se ilustró en el bosquejo inicial trazado a mano (ver fotografía en el Anexo A), la comunicación del sistema tiene dos direcciones claras. Hacia el exterior, fluye desde las aplicaciones cliente conectadas hacia el nodo primario. Hacia el interior, los nodos intercambian señales de control (\textit{heartbeats}) bidireccionales cada dos segundos sobre una red privada para monitorizar la salud mutua y el estado de la topología.
+Como se ilustró en el bosquejo inicial trazado a mano (ver fotografía en el Anexo A), la comunicación del sistema tiene dos direcciones claras. Hacia el exterior, fluye desde las aplicaciones cliente conectadas hacia el nodo primario. Hacia el interior, los nodos intercambian señales de control (\textit{heartbeats}) bidireccionales cada dos segundos sobre una red privada para monitorizar la salud mutua y el estado de la topología \cite{mongodb2026replica}.
 
-% 5. Análisis con los conceptos de la Unidad 1
+% 3. Análisis con los conceptos de la Unidad 1
 \section{Análisis de Conceptos de la Unidad 1}
 
 \subsection{Transparencias de distribución}
-MongoDB provee un sólido nivel de \textbf{transparencia de acceso y ubicación}. Las aplicaciones cliente se conectan utilizando una única cadena de conexión; es el \textit{driver} el que oculta qué servidor físico contiene el dato, enrutando automáticamente las lecturas. Asimismo, el sistema destaca en su \textbf{transparencia de fallos}. Si un servidor colapsa, el controlador pone en pausa brevemente las transacciones y las redirige al nuevo líder sin exponer errores, haciendo el fallo invisible a nivel de interfaz.
+MongoDB provee un sólido nivel de transparencia de acceso y ubicación. Las aplicaciones cliente se conectan utilizando una única cadena de conexión; es el \textit{driver} el que oculta qué servidor físico contiene el dato, enrutando automáticamente las lecturas. Asimismo, el sistema destaca en su transparencia de fallos. Si un servidor colapsa, el controlador pone en pausa brevemente las transacciones y las redirige al nuevo líder sin exponer errores, haciendo el fallo invisible a nivel de interfaz \cite{mongodb2026replica}.
 
 \subsection{Teorema CAP y PACELC}
-Evaluado bajo el Teorema CAP, un Replica Set de MongoDB se clasifica como un sistema \textbf{CP} (Consistencia y Tolerancia a Particiones). Ante una partición de red que aísla al primario, el sistema sacrifica la Disponibilidad: rechaza nuevas escrituras para evitar divergencia de datos hasta que se elija un nuevo líder. 
+Evaluado bajo el Teorema CAP, un Replica Set de MongoDB se clasifica como un sistema CP (Consistencia y Tolerancia a Particiones). Ante una partición de red que aísla al primario, el sistema sacrifica la Disponibilidad: rechaza nuevas escrituras para evitar divergencia de datos hasta que se elija un nuevo líder \cite{schultz2025design}. 
 
-Al aplicar el teorema extendido \textbf{PACELC}, su topología se describe como PA/EC. Si hay partición (P), elige consistencia (C). Sin embargo, en estado estable (E), obliga a configurar el balance entre latencia (L) y consistencia (C) utilizando la directiva \textit{Write Concern}. 
+Al aplicar el teorema extendido PACELC, su topología se describe como PA/EC. Si hay partición (P), elige consistencia (C). Sin embargo, en estado estable (E), obliga a configurar el balance entre latencia (L) y consistencia (C) utilizando la directiva \textit{Write Concern} \cite{ferreira2024impacts, ferreira2025benchmarking}. 
 
 \subsection{Modelos de comunicación}
-Externamente, MongoDB sigue un modelo de \textbf{cliente-servidor}, utilizando conectividad por \textit{sockets} TCP. Hacia el interior del clúster, la replicación de datos rompe con la sincronía: los nodos secundarios extraen (\textit{pull}) las actualizaciones del \textit{oplog} de forma estrictamente \textbf{asincrónica}. Esto evita que el nodo primario quede bloqueado esperando confirmaciones.
+Externamente, MongoDB sigue un modelo de cliente-servidor, utilizando conectividad por \textit{sockets} TCP. Hacia el interior del clúster, la replicación de datos rompe con la sincronía: los nodos secundarios extraen (\textit{pull}) las actualizaciones del \textit{oplog} de forma estrictamente asincrónica. Esto evita que el nodo primario quede bloqueado esperando confirmaciones.
 
 \subsection{Tolerancia a fallos}
-El sistema tolera fallos de hardware automatizando la recuperación sin intervención humana usando un algoritmo basado en \textit{heartbeats}. Si un nodo secundario no recibe el "latido" del primario durante 10 segundos, declara la caída del líder y solicita votos. El clúster otorga la victoria al nodo con el \textit{oplog} más actualizado.
+El sistema tolera fallos de hardware automatizando la recuperación sin intervención humana usando un algoritmo basado en \textit{heartbeats}. Si un nodo secundario no recibe el "latido" del primario durante 10 segundos, declara la caída del líder y solicita votos. El clúster otorga la victoria al nodo con el \textit{oplog} más actualizado \cite{mongodb2026replica}.
 
-% 6. Experimentación propia
+% 4. Experimentación propia
 \section{Experimentación Propia}
 Para comprobar empíricamente la tolerancia a fallos, se ejecutó un experimento local utilizando contenedores. Se desplegó una red virtual aislada (\texttt{mongo-cluster}) y se levantaron tres nodos de MongoDB (\texttt{mongo1}, \texttt{mongo2}, \texttt{mongo3}). Tras inicializar el \textit{Replica Set} y confirmar que \texttt{mongo1} asumió el rol de \textit{Primary}, se simuló una caída catastrófica deteniendo abruptamente el contenedor principal (\texttt{docker stop mongo1}). 
 
 La observación del estado del clúster desde \texttt{mongo2} demostró que el sistema detectó la falta de \textit{heartbeats}. En un lapso inferior a 10 segundos, los nodos secundarios iniciaron una elección y promovieron a uno de ellos como nuevo líder, evidenciando la capacidad de auto-recuperación del sistema.
 
-% 7. Ejemplos del entorno del estudiante
+% 5. Ejemplos del entorno local
 \section{Ejemplos del Entorno Local}
-Los dilemas de los sistemas distribuidos son claramente observables en plataformas cotidianas de alta concurrencia utilizadas por la comunidad estudiantil. Por ejemplo, en el portal web del programa \textbf{Jóvenes en Acción}, durante las fechas límite de registro y consulta de asignaciones, la plataforma sufre cuellos de botella severos debido a la avalancha de solicitudes concurrentes. Ante este volumen, el sistema distribuido subyacente enfrenta dificultades para sincronizar el estado de las postulaciones sin degradar la experiencia de usuario, viéndose forzado a encolar peticiones o limitar temporalmente el acceso para evitar inconsistencias y duplicidad de registros en su base de datos.
+Los dilemas de los sistemas distribuidos son claramente observables en plataformas cotidianas de alta concurrencia utilizadas por la comunidad estudiantil. Por ejemplo, en el portal web del programa Jóvenes en Acción, durante las fechas límite de registro y consulta de asignaciones, la plataforma sufre cuellos de botella severos debido a la avalancha de solicitudes concurrentes. Ante este volumen, el sistema enfrenta dificultades para sincronizar el estado de las postulaciones, viéndose forzado a encolar peticiones o limitar temporalmente el acceso. En una arquitectura como MongoDB, este escenario se mitigaría habilitando el enrutamiento de lecturas hacia los nodos secundarios (\textit{Read Preference: secondary}) o implementando \textit{sharding} para distribuir la carga de escrituras.
 
-Otro caso se observa en la aplicación móvil de \textbf{Banco Pichincha}. Cuando se realiza una transferencia, la plataforma prefiere bloquear temporalmente la operación (sacrificar disponibilidad) si no puede asegurar que el saldo se actualice de manera síncrona (priorizar consistencia). Es un claro ejemplo de un diseño CP en la vida real.
+Otro caso se observa en la aplicación móvil de Banco Pichincha. Cuando se realiza una transferencia, la plataforma prefiere bloquear temporalmente la operación (sacrificar disponibilidad) si no puede asegurar que el saldo se actualice de manera síncrona (priorizar consistencia). Es un claro ejemplo de un diseño CP en la vida real.
 
-% 8. Análisis comparativo
+% 6. Análisis comparativo
 \section{Análisis Comparativo}
-Se establece una comparación con Apache Cassandra, otra base de datos NoSQL fundamentada en principios distintos (Tabla 1).
+Se establece una comparación con Apache Cassandra, otra base de datos NoSQL fundamentada en principios distintos (Tabla \ref{tab:comparacion}) \cite{gyorodi2022comparative, dubey2025performance}.
 
 \begin{table}[h]
 \centering
 \caption{Comparación arquitectónica entre MongoDB y Apache Cassandra}
+\label{tab:comparacion}
 \vspace{0.2cm}
 \begin{tabular}{@{}p{3cm}p{6cm}p{6cm}@{}}
 \toprule
@@ -101,5 +103,37 @@ Se establece una comparación con Apache Cassandra, otra base de datos NoSQL fun
 % 9. Postura crítica
 \section{Postura Crítica}
 MongoDB presenta un \textit{trade-off} técnico evidente: al centralizar escrituras en un único primario, evita conflictos y garantiza consistencia fuerte. Sin embargo, el tiempo de elección de un nuevo líder (10 segundos) implica una ventana de indisponibilidad inaceptable para aplicaciones de ultra-baja latencia. Por ende, es una herramienta especializada para dominios donde la integridad prima sobre la disponibilidad extrema.
+
+% 8. Conclusiones
+\section{Conclusiones}
+La experimentación práctica en contenedores confirma que MongoDB resuelve los desafíos de la distribución priorizando la consistencia sobre la disponibilidad frente a particiones de red. Su modelo de \textit{Replica Set} logra ocultar eficazmente los fallos de hardware al cliente mediante procesos electorales automatizados, validando las restricciones ineludibles planteadas por el teorema PACELC.
+
+% 9. Declaración de uso de Inteligencia Artificial
+\section{Declaración de uso de Inteligencia Artificial}
+Se declara el uso del modelo de lenguaje Gemini 3.8 estrictamente como asistente de soporte sintáctico para la corrección de comandos mal escritos en la terminal durante la ejecución de Docker, y como corrector ortotipográfico en latex (revisión de faltas ortográficas, validación de signos de puntuación y uso adecuado de comas) por parte de la documentación.
+
+% Referencias
+\nocite{*}
+\printbibliography[heading=bibintoc, title={Referencias}]
+
+% 10. Anexos
+\newpage
+\section{Anexos}
+\subsection*{A. Esquema Inicial a Mano}
+\begin{center}
+\includegraphics[width=0.9\textwidth]{figuras/anexoA.jpg}
+\end{center}
+
+\newpage
+\subsection*{B. Capturas de Lectura de Fuentes}
+\begin{center}
+\includegraphics[width=0.9\textwidth]{figuras/anexoB1.png}
+\vspace{0.5cm}
+
+\includegraphics[width=0.9\textwidth]{figuras/anexoB2.png}
+\vspace{0.5cm}
+
+\includegraphics[width=0.9\textwidth]{figuras/anexoB3.png}
+\end{center}
 
 \end{document}
